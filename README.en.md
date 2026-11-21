@@ -10,12 +10,26 @@ Makes the provider groups in DeepSeek Harness's **built-in model menu** collapsi
 
 ## Install
 
-### Option 1: from the UI (recommended)
+### Option 1: command line (recommended)
+
+```sh
+dsh plugin add dsh-provider-fold
+```
+
+Reload the UI afterwards.
+
+### Option 2: from the UI
 
 1. Open the DSH Web UI.
 2. Click **Plugins** in the left sidebar.
 3. Click **Add plugin**.
-4. Paste this line:
+4. Paste either line:
+
+   ```
+   dsh-provider-fold
+   ```
+
+   or, installing straight from GitHub (use this before an npm release):
 
    ```
    github:CamouflageGe/dsh-provider-fold
@@ -23,16 +37,8 @@ Makes the provider groups in DeepSeek Harness's **built-in model menu** collapsi
 
 5. Confirm the installation, then **reload the page**.
 
-> Installation uses `git` and `pnpm`. If `pnpm` is not found, install it first or point the
-> plugin manager's `pnpmCommand` at its path.
-
-### Option 2: command line
-
-```sh
-dsh plugin install github:CamouflageGe/dsh-provider-fold
-```
-
-Restart or reload the UI afterwards.
+> Installing from GitHub uses `git` and `pnpm`. If `pnpm` is not found, install it first or point
+> the plugin manager's `pnpmCommand` at its path.
 
 ### After installing
 

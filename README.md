@@ -10,12 +10,26 @@
 
 ## 安装
 
-### 方式一：在界面里安装（推荐）
+### 方式一：命令行（推荐）
+
+```sh
+dsh plugin add dsh-provider-fold
+```
+
+安装后刷新界面。
+
+### 方式二：在界面里安装
 
 1. 打开 DSH Web 界面。
 2. 点左侧边栏的 **插件**（Plugins）。
 3. 点 **添加插件**（Add plugin）。
-4. 在输入框里粘贴这一行：
+4. 在输入框里粘贴下面任意一行：
+
+   ```
+   dsh-provider-fold
+   ```
+
+   或从 GitHub 直接安装（未发布到 npm 时用这个）：
 
    ```
    github:CamouflageGe/dsh-provider-fold
@@ -23,15 +37,7 @@
 
 5. 确认安装，然后 **刷新页面**。
 
-> 安装会用到 `git` 与 `pnpm`。如果提示找不到 `pnpm`，请先安装它，或在插件管理器的配置里指定 `pnpmCommand` 的路径。
-
-### 方式二：命令行
-
-```sh
-dsh plugin install github:CamouflageGe/dsh-provider-fold
-```
-
-安装后重启或刷新界面。
+> 从 GitHub 安装会用到 `git` 与 `pnpm`。如果提示找不到 `pnpm`，请先安装它，或在插件管理器的配置里指定 `pnpmCommand` 的路径。
 
 ### 安装完成后
 
