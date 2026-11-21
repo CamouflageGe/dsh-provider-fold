@@ -137,14 +137,24 @@
   <!-- 菜单描边 -->
   <rect x="330" y="60" width="360" height="520" rx="12" fill="none" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
 
-  <!-- ===== 注释：点标题折叠 ===== -->
+  <!-- ===== 注释：默认只展开当前模型所在组 ===== -->
   <g>
-    <line x1="330" y1="315" x2="272" y2="315" stroke="rgb(122,170,255)" stroke-width="1.4" stroke-opacity="0.8"/>
-    <circle cx="330" cy="315" r="2.6" fill="rgb(122,170,255)"/>
-    <text x="24" y="300" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11"
-          fill="rgb(249,250,251)">点标题即可折叠该提供商</text>
-    <text x="24" y="318" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5"
-          fill="rgb(129,133,140)">收起后仍显示模型数量</text>
+    <line x1="330" y1="200" x2="272" y2="200" stroke="rgb(122,170,255)" stroke-width="1.4" stroke-opacity="0.8"/>
+    <circle cx="330" cy="200" r="2.6" fill="rgb(122,170,255)"/>
+    <text x="24" y="184" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11"
+          fill="rgb(249,250,251)">默认只展开你正在用的提供商</text>
+    <text x="24" y="202" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5"
+          fill="rgb(129,133,140)">与当前模型同组，其余自动折叠</text>
+  </g>
+
+  <!-- ===== 注释：其余组默认折叠，可点开 ===== -->
+  <g>
+    <line x1="330" y1="330" x2="272" y2="330" stroke="rgb(173,178,184)" stroke-width="1.2" stroke-opacity="0.6"/>
+    <circle cx="330" cy="330" r="2.6" fill="rgb(173,178,184)"/>
+    <text x="24" y="314" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11"
+          fill="rgb(207,211,214)">其余提供商默认折叠</text>
+    <text x="24" y="332" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5"
+          fill="rgb(129,133,140)">点标题展开，仍显示模型数量</text>
   </g>
 
   <!-- ===== 注释：分组与搜索是自带能力 ===== -->

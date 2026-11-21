@@ -14,10 +14,13 @@
  *
  *   - every provider heading in the built-in model menu becomes a disclosure
  *     button (role="button", aria-expanded) that folds its rows;
- *   - folding is remembered per provider for the page's lifetime;
- *   - while a search query is active every group stays open, so search results
- *     are never hidden behind a stale fold;
- *   - the collapsed state survives the menu closing and reopening.
+ *   - DEFAULT: only the provider holding the session's current model is open,
+ *     every other provider starts folded — that is the reason a profile with a
+ *     dozen providers no longer shows a hundred rows at once;
+ *   - groups the user opens or closes by hand keep that state for the page's
+ *     lifetime, layered over the default;
+ *   - while a search query is active every group stays open, so matches are
+ *     never hidden behind a fold.
  *
  * HOW (and why it is done this way)
  * ---------------------------------
@@ -48,9 +51,17 @@ window.__ModuleLoader__.load({
     /** Attributes owned by this plugin; all scoped under the model menu. */
     const MARK = 'data-dsh-model-picker';
     const COLLAPSED = 'data-dmp-collapsed';
+    /** The group that holds the session's current model; never auto-folded. */
+    const CURRENT = 'data-dmp-current';
 
-    /** Providers the user folded away, by provider id (page-lifetime memory). */
-    const folded = new Set();
+    /**
+     * Groups the user explicitly opened, by position key. Default policy is
+     * "only the current provider is open", so this set records exceptions made
+     * by clicking a heading.
+     */
+    const opened = new Set();
+    /** Groups the user explicitly closed, so a manual fold survives re-renders. */
+    const closed = new Set();
 
     /** Stylesheet: heading affordance + the folded state. Scoped to the model menu. */
     const CSS = `
@@ -95,6 +106,11 @@ window.__ModuleLoader__.load({
 [${MARK}] [${COLLAPSED}] > [data-menu-group-heading] {
   color: var(--dsw-alias-label-tertiary);
 }
+/* The current model's provider keeps full contrast even while others fold. */
+[${MARK}] [${CURRENT}] > [data-menu-group-heading] {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 500;
+}
 `;
 
     /** Attach: the grouping container inside the built-in model menu. */
@@ -107,14 +123,29 @@ window.__ModuleLoader__.load({
       return section === null ? null : section.parentElement;
     }
 
-    /** Read the stable key a section folds under (its position in the container). */
-    function providerKeyOf(container, section) {
-      const sections = [...container.querySelectorAll(MENU_GROUP_SELECTOR)];
-      return 'group-' + sections.indexOf(section);
+    /**
+     * The group that holds the session's currently selected model.
+     *
+     * The shipped menu marks the chosen row with `aria-checked="true"`
+     * (`role="menuitemradio"`), which is the one stable signal for "where the
+     * user is now" — it does not depend on provider order or display names.
+     *
+     * @param container - the model menu's group container.
+     * @returns the section holding the current model, or null when nothing is selected.
+     */
+    function currentSectionOf(container) {
+      const checked = container.querySelector('[role="menuitemradio"][aria-checked="true"]');
+      return checked === null ? null : checked.closest(MENU_GROUP_SELECTOR);
     }
 
     /**
-     * Re-apply the folded state to every group in the container.
+     * Re-apply the disclosure state to every group in the container.
+     *
+     * Default policy: ONLY the provider holding the current model is open; every
+     * other provider is folded. Two exceptions layer on top, both user-driven:
+     * a group the user clicked open stays open, and a group the user clicked
+     * closed stays closed — including the current one. An active search query
+     * overrides all of it, because hiding a match would be wrong.
      *
      * Called after any DOM mutation, because React re-creates rows when the
      * catalog refreshes and a freshly created section carries no attribute.
@@ -123,22 +154,22 @@ window.__ModuleLoader__.load({
      * @param searching - whether a search query is active; search wins over folds.
      */
     function sync(container, searching) {
-      const sections = container.querySelectorAll(MENU_GROUP_SELECTOR);
+      const sections = [...container.querySelectorAll(MENU_GROUP_SELECTOR)];
+      const current = currentSectionOf(container);
       sections.forEach((section) => {
         const heading = section.querySelector(HEADING_SELECTOR);
         if (heading === null) return;
-        const key = providerKeyOf(container, section);
-        const isFolded = !searching && folded.has(key);
-        if (isFolded) section.setAttribute(COLLAPSED, '');
-        else {
-          // Start collapsed only when the plugin actually wants it folded;
-          // otherwise a stale attribute must go (e.g. the query was cleared).
-          if (section.hasAttribute(COLLAPSED)) section.removeAttribute(COLLAPSED);
-        }
+        const key = 'group-' + sections.indexOf(section);
+        const isCurrent = section === current;
+        // Current provider opens by default; the rest start folded.
+        let open = isCurrent ? !closed.has(key) : opened.has(key);
+        if (searching) open = true;
+        section.toggleAttribute(CURRENT, isCurrent);
+        section.toggleAttribute(COLLAPSED, !open);
         // Expose the disclosure semantics the shipped markup does not carry.
         heading.setAttribute('role', 'button');
         heading.setAttribute('tabindex', '0');
-        heading.setAttribute('aria-expanded', isFolded ? 'false' : 'true');
+        heading.setAttribute('aria-expanded', open ? 'true' : 'false');
       });
     }
 
@@ -174,12 +205,26 @@ window.__ModuleLoader__.load({
         observed.add(container);
         container.setAttribute(MARK, '');
 
+        /**
+         * Flip one group, recording the result as a user exception so the
+         * default policy does not undo it on the next sync.
+         * @param section - the group section whose heading was activated.
+         */
         const toggle = (section) => {
           const heading = section.querySelector(HEADING_SELECTOR);
           if (heading === null) return;
-          const key = providerKeyOf(container, section);
-          if (folded.has(key)) folded.delete(key);
-          else folded.add(key);
+          const sections = [...container.querySelectorAll(MENU_GROUP_SELECTOR)];
+          const key = 'group-' + sections.indexOf(section);
+          const isOpenNow = !section.hasAttribute(COLLAPSED);
+          if (isOpenNow) {
+            // Closing: remember the fold, and drop any remembered opening.
+            closed.add(key);
+            opened.delete(key);
+          } else {
+            // Opening: remember it, and drop any remembered fold.
+            opened.add(key);
+            closed.delete(key);
+          }
           sync(container, isSearching(container));
         };
 

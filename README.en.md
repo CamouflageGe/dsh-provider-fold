@@ -12,16 +12,18 @@ The built-in model menu **already groups models by provider** and **already has 
 
 This plugin adds exactly that, inside the existing menu:
 
-- every provider heading becomes a disclosure control (`role="button"` and `aria-expanded`);
-- the folded state is remembered for the page's lifetime, so closing and reopening the menu keeps it;
+- **only the provider holding the current model starts open**; every other provider is folded, so the menu opens on the model you are using instead of a hundred rows;
+- every provider heading becomes a disclosure control (`role="button"` and `aria-expanded`) with an open/closed chevron;
+- groups you open or close by hand keep that state for the page's lifetime, so closing and reopening the menu preserves it;
 - while a search query is active every group expands, so results are never hidden;
 - keyboard support: `Tab` to a heading, then `Enter` or `Space` to toggle.
 
 ## How to use it
 
 1. Click the composer's model button to open the built-in model menu.
-2. Click any provider heading to fold that group; click again to unfold.
-3. The search field keeps working — that is a built-in feature.
+2. The provider holding your current model is expanded; the rest are folded with their model counts shown.
+3. Click any provider heading to expand it; click again to fold it.
+4. The search field keeps working (a built-in feature) and expands every match.
 
 Only the model menu is affected; the command popup's groups are left alone.
 
