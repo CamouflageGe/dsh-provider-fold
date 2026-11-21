@@ -4,6 +4,8 @@ English | [中文](README.zh.md)
 
 A collapsible, searchable **model picker** for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web GUI.
 
+![The model picker open in the composer: providers as collapsible groups, search results, and reasoning-effort chips](docs/preview.svg)
+
 When a profile carries a dozen providers and a hundred models, the built-in model menu lays every row out flat — scrolling to find one model is the slowest part of switching. This plugin gives the menu a browser: models are grouped by provider, every provider folds, and one search field matches model names, model ids and provider names.
 
 ## Features
