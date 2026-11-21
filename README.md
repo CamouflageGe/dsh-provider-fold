@@ -40,26 +40,12 @@ git clone https://github.com/CamouflageGe/dsh-model-picker.git
 
 ## 使用方法
 
-1. 在输入框点模型按钮——**直接**打开选择面板。
-2. 折叠不需要的提供商，或直接输入搜索。
-3. 选中模型——面板关闭，会话立即切换。
-4. 面板底部可切换推理强度；再往下是其他插件注入的会话选项（如 Agent 团队开关）。
+1. 在输入框点模型按钮，打开模型菜单。
+2. 选第一行「全部模型（按提供商折叠）」。
+3. 折叠不需要的提供商，或直接输入搜索。
+4. 选中模型——面板关闭，会话立即切换。
 
-## 它替换了什么
-
-本插件**接管了输入框的模型按钮**（`conversation.input.model`，`priority: -1`，
-低于内置的 0，所以内置按钮不再渲染），因此一次点击就能进面板。
-
-内置的模型菜单和它的推理强度子面板随之不再出现；它们的能力被本面板覆盖：
-
-| 内置能力 | 本插件的承接位置 |
-|---|---|
-| 模型列表 | 面板的分组列表 + 搜索 |
-| 推理强度 | 面板底部 chips |
-| 其他插件注入的会话选项（Agent 团队开关等） | 面板底部逐条转接 |
-| 提供商徽章（WorkBuddy 小火箭、优惠等） | 按钮与每行都经转接渲染 |
-
-### 为什么必须转接，不能直接沿用
+## 为什么不直接替换内置菜单
 
 内置模型控件是一个 `single` 插槽，它**声明**了两个子插槽
 （`conversation.input.model.label` 和 `conversation.input.model.options`）。
@@ -68,28 +54,32 @@ git clone https://github.com/CamouflageGe/dsh-model-picker.git
 - 第二个去声明的注册会抛 `already declared`；
 - 完全不声明的注册拿不到 `renderSlot`，无法渲染别人的贡献。
 
-所以顶替之后，本插件**不能**再渲染这两个子插槽。做法改为：从公开注册表取出每个
-子插槽当前获胜的组件，用内置控件**完全相同的 owner props** 自己渲染它。
+因此本插件**不改动内置菜单**，只贡献两处：
 
-提供商徽章（`conversation.input.model.label`）：
+| 插槽 | id | order | 用途 |
+|---|---|---|---|
+| `conversation.input.model.options` | `model-picker` | `-10` | 内置菜单里的入口行 |
+| `conversation.input.overlay` | `model-picker` | `90` | 选择面板（portal 到 `document.body`） |
+
+### 关于「顶替模型按钮」
+
+本插件曾实现过用 `priority: -1` 直接顶替模型按钮（一次点击进面板）。
+它技术上可行，但代价是内置控件不再调用自己的两个 `renderSlot`，
+而挂在 `conversation.input.model.options` 上的组件（例如 Agent 团队开关）
+依赖渲染器注入的 `useSession` / `useSessions` / `useProjection`，
+手动渲染的副本拿不到这些 hook，**团队开关会直接消失**。
+所以该方案已被撤销，改为从内置菜单第一行进入，换取所有现有贡献照常工作。
+
+### 提供商标签照常显示
+
+面板里每一行仍通过公开注册表渲染提供商自己的布局组件，
+用内置控件**完全相同的 owner props**：
 
 ```js
 { provider, model, placement: 'option' | 'menu' | 'trigger', selected }
 ```
 
-会话选项（`conversation.input.model.options`）：
-
-```js
-{ locked, dismiss, reportFailure, ...inject(sessionId), t }
-```
-
-每个转接组件都单独包在 error boundary 里——某个插件报错只会让它自己消失，
-不会让整个面板空白。
-
-### 想回到内置菜单？
-
-删除 `apply()` 里注册 `conversation.input.model` 的那一段（`priority: -1`），
-内置按钮与菜单就会恢复，其余功能不受影响。
+组件报错时会被 error boundary 兜住，退化成纯模型名，单个坏插件不会让面板空白。
 
 ## 环境要求
 
