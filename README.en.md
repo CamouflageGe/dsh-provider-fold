@@ -2,116 +2,72 @@
 
 English | [中文](README.md)
 
-A collapsible, searchable **model picker** for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web GUI.
+Makes the provider groups in DeepSeek Harness's **built-in model menu** collapsible.
 
-![The model picker open in the composer: providers as collapsible groups, search results, and reasoning-effort chips](docs/preview.svg)
+![Provider groups in the model menu fold on click](docs/preview.svg)
 
-When a profile carries a dozen providers and a hundred models, the built-in model menu lays every row out flat — scrolling to find one model is the slowest part of switching. This plugin gives the menu a browser: models are grouped by provider, every provider folds, and one search field matches model names, model ids and provider names.
+## What it solves
 
-## Features
+The built-in model menu **already groups models by provider** and **already has a search field** (shown once a catalog holds more than four models, with fuzzy ranking). The only thing it lacks is that a **provider heading cannot be clicked to fold its rows** — with a dozen providers and a hundred models everything stays laid out flat.
 
-- **Grouped by provider** — every provider is a collapsible section with its model count.
-- **Opens where you are** — the provider that holds your current model starts expanded.
-- **Search** — matches model name, model id and provider name. Several words are ANDed (`gpt 4.1 mini`), a whole-phrase hit always outranks per-word hits, and short single characters do not match everything.
-- **Reasoning effort** — switch the current model's effort from the panel footer.
-- **Keyboard** — `↑` `↓` move the highlight, `Enter` selects, `Esc` closes, `Tab` stays inside the panel. IME composition is respected, so pinyin candidate paging is not stolen.
-- **One source of truth** — every read and write goes through the shipped `modelDirectories` service, so this panel, the `/model` popup and the composer chip always agree.
-- **Does not replace the built-in menu** — it extends it. Other plugins keep working, including their per-model labels.
+This plugin adds exactly that, inside the existing menu:
 
-## Install
-
-### From a local checkout
-
-```sh
-git clone https://github.com/CamouflageGe/dsh-model-picker.git
-```
-
-Then in the DSH Web GUI open **Plugins → Add plugin** and point it at the cloned directory.
-
-### What it adds to the profile
-
-`cordis.patch.yml` inserts one row:
-
-```yaml
-- insert:
-    - id: dsh-model-picker
-      name: 'dsh-model-picker'
-```
+- every provider heading becomes a disclosure control (`role="button"` and `aria-expanded`);
+- the folded state is remembered for the page's lifetime, so closing and reopening the menu keeps it;
+- while a search query is active every group expands, so results are never hidden;
+- keyboard support: `Tab` to a heading, then `Enter` or `Space` to toggle.
 
 ## How to use it
 
-1. Open the model menu from the composer's model button.
-2. Pick the first row, **All models (grouped by provider)**.
-3. Fold the providers you do not need, or type to search.
-4. Pick a model — the panel closes and the session switches immediately.
+1. Click the composer's model button to open the built-in model menu.
+2. Click any provider heading to fold that group; click again to unfold.
+3. The search field keeps working — that is a built-in feature.
 
-## Why it does not replace the built-in menu
+Only the model menu is affected; the command popup's groups are left alone.
 
-The built-in model control is a `single` slot that **declares** two child slots
-(`conversation.input.model.label` and `conversation.input.model.options`). The
-harness slot registry allows exactly one declarer per key:
+## How it works, and why this way
 
-- a second registration that declares them throws `already declared`;
-- one that declares nothing receives no `renderSlot` face.
+The built-in menu ships prebuilt inside `app.asar` as
+`@deepseek-ai/dsh-client-ui-model-selection`. Its `MenuGroup` is an ordinary
+component, not a slot, so there is **no extension point that could register a
+disclosure control**, and patching it directly would mean editing DSH itself
+(lost on every DSH upgrade). This plugin therefore enhances the rendered menu
+from the outside:
 
-So this plugin leaves the built-in menu alone and contributes two things:
+1. it injects one scoped stylesheet that only applies inside the model menu;
+2. it listens for clicks and keys on provider headings;
+3. it toggles the group's displayed state through an attribute.
 
-| Slot | id | order | Purpose |
-|---|---|---|---|
-| `conversation.input.model.options` | `model-picker` | `-10` | the entry row inside the built-in menu |
-| `conversation.input.overlay` | `model-picker` | `90` | the picker panel (portaled to `document.body`) |
+The menu is React-rendered, so a later render can re-create rows and drop a
+hand-applied attribute. A `MutationObserver` re-applies the folded state after
+any DOM change, so no React code is patched.
 
-### About shadowing the model button
+## Known limitations and risk
 
-An earlier revision registered `conversation.input.model` at `priority: -1` to
-replace the model button outright, which made the picker open on one click. It
-works, but the shipped control then never calls its own two `renderSlot`s, and
-the components registered on `conversation.input.model.options` (the Agent Teams
-switch, for example) need the renderer-injected `useSession` / `useSessions` /
-`useProjection` hooks. A manually rendered copy cannot provide them, so **the
-Team switch disappeared**. That approach was reverted; the picker opens from the
-first row of the built-in menu instead, where every existing contribution keeps
-working.
-
-### Provider labels still work
-
-Each row in the panel renders the provider's own layout component from the public
-registry, with the same owner props the built-in control uses:
-
-```js
-{ provider, model, placement: 'option' | 'menu' | 'trigger', selected }
-```
-
-A failing component is contained by an error boundary and degrades to the plain
-catalog name, so one broken plugin can never blank the panel.
-
-## Requirements
-
-- DeepSeek Harness with the Web GUI (`@deepseek-ai/dsh-client-ui-model-selection`
-  must be active — it is part of the standard web composition).
+- **This is a DOM-level enhancement.** If a future DSH release renames the group
+  markup (`[data-menu-group]`, `[data-menu-group-heading]`) the plugin stops
+  working silently — it never breaks the menu, it simply stops folding. Those
+  selectors are the sticky-heading contract `observeStickyMenuGroups` itself
+  depends on, so they are as stable as that contract.
+- Folding is remembered by a group's position in the menu; if the provider order
+  changes, a remembered slot may land on a different group.
 - No configuration fields.
+
+## What it does not touch
+
+This plugin **registers no slots** and replaces no built-in component, so the
+Agent Teams switch, provider badges, price hints and every other existing
+contribution keep working exactly as before. Uninstalling restores the original
+menu immediately.
 
 ## Development
 
-The client half is a single plain-JavaScript bundle (`client.js`) written
-against the gateway's dynamic module format: no build step, no JSX, React from
-the shared module table.
+The client half is one plain-JavaScript bundle (`client.js`) written against the
+gateway's dynamic module format: no build step and no React dependency, since it
+only enhances the DOM.
 
-```js
-window.__ModuleLoader__.load({ id: 'dsh-model-picker', factory(require) { /* … */ } })
-```
-
-After editing `client.js`, toggle the plugin off and on in **Plugins** so the
-browser loads the new bundle generation.
-
-## Known limitations
-
-- Visual verification is up to the user; this repository ships no automated
-  browser test.
-- The panel is a modal dialog; it traps `Tab` and closes on `Esc`.
-- Search is substring/subsequence matching, not fuzzy typo correction.
-- Because it takes over the model button, the shipped menu's native browsing is
-  gone; undo it with "Want the built-in menu back?" above if you need it.
+After editing, toggle the plugin off and on in **Plugins** so the browser loads
+the new bundle generation.
 
 ## License
 

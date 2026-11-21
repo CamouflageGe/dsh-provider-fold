@@ -1,152 +1,183 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-label="模型选择器在 DeepSeek Harness 输入框中展开的样子：提供商以可折叠分组呈现并显示模型数量，含搜索结果、当前模型行和推理强度选项">
-  <title>dsh-model-picker —— 按提供商折叠、可搜索的模型选择器</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-label="DSH 自带的模型菜单里，提供商标题可点击折叠：展开的 GPT 网关显示三个模型，其余提供商收起并显示模型数量">
+  <title>dsh-model-picker —— 给自带模型菜单加上可折叠的提供商分组</title>
 
   <defs>
-    <clipPath id="panelClip">
-      <rect x="248" y="84" width="520" height="500" rx="14"/>
+    <clipPath id="menuClip">
+      <rect x="330" y="60" width="360" height="520" rx="12"/>
     </clipPath>
   </defs>
 
-  <!-- 对话框背后的会话内容，压暗处理 -->
+  <!-- 深色画布 -->
   <rect width="960" height="640" fill="rgb(21,21,23)"/>
 
-  <g opacity="0.30">
-    <rect x="150" y="60" width="360" height="14" rx="7" fill="rgb(53,54,56)"/>
-    <rect x="150" y="88" width="470" height="14" rx="7" fill="rgb(44,44,46)"/>
-    <rect x="150" y="116" width="300" height="14" rx="7" fill="rgb(44,44,46)"/>
-    <rect x="150" y="176" width="420" height="14" rx="7" fill="rgb(44,44,46)"/>
-    <rect x="150" y="204" width="480" height="14" rx="7" fill="rgb(44,44,46)"/>
-    <rect x="120" y="470" width="720" height="120" rx="14" fill="none" stroke="rgb(53,54,56)" stroke-width="1.5"/>
-    <rect x="146" y="532" width="40" height="24" rx="8" fill="rgb(44,44,46)"/>
-    <rect x="198" y="532" width="52" height="24" rx="8" fill="rgb(44,44,46)"/>
+  <!-- 背景中隐约的对话内容 -->
+  <g opacity="0.20">
+    <rect x="120" y="120" width="300" height="12" rx="6" fill="rgb(53,54,56)"/>
+    <rect x="120" y="146" width="380" height="12" rx="6" fill="rgb(44,44,46)"/>
+    <rect x="120" y="172" width="240" height="12" rx="6" fill="rgb(44,44,46)"/>
   </g>
 
-  <!-- 模态遮罩 -->
-  <rect width="960" height="640" fill="rgb(0,0,0)" opacity="0.55"/>
+  <!-- ===== 自带的模型菜单卡片 ===== -->
+  <g clip-path="url(#menuClip)">
+    <rect x="330" y="60" width="360" height="520" fill="rgb(44,44,46)"/>
 
-  <!-- ============ 选择面板 ============ -->
-  <g clip-path="url(#panelClip)">
-    <rect x="248" y="84" width="520" height="500" fill="rgb(35,35,36)"/>
-
-    <!-- 头部：放大镜 + 搜索词 + 关闭 -->
+    <!-- 搜索框（自带能力，模型超过 4 个时出现） -->
     <g>
-      <circle cx="278" cy="122" r="6.5" fill="none" stroke="rgb(129,133,140)" stroke-width="1.6"/>
-      <path d="M283 127 L288 132" stroke="rgb(129,133,140)" stroke-width="1.6" stroke-linecap="round"/>
-      <text x="300" y="127" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="13" fill="rgb(129,133,140)">gpt</text>
-      <g stroke="rgb(173,178,184)" stroke-width="1.4" stroke-linecap="round">
-        <path d="M714 117 L726 129"/><path d="M726 117 L714 129"/>
-      </g>
+      <circle cx="356" cy="92" r="6" fill="none" stroke="rgb(129,133,140)" stroke-width="1.5"/>
+      <path d="M361 97 L365 101" stroke="rgb(129,133,140)" stroke-width="1.5" stroke-linecap="round"/>
+      <text x="376" y="97" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12" fill="rgb(129,133,140)">搜索模型或提供商…</text>
     </g>
 
-    <!-- 操作行：搜索时显示命中数量，而不是两个失效的按钮 -->
-    <text x="264" y="158" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12" fill="rgb(173,178,184)">找到 3 个模型</text>
-    <line x1="248" y1="172" x2="768" y2="172" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
-
-    <!-- ===== 唯一能被 gpt 命中的提供商，自动展开 ===== -->
+    <!-- ===== 分组 1：展开 ===== -->
     <g>
-      <path d="M266 189 L272 195 L266 201" fill="none" stroke="rgb(173,178,184)" stroke-width="1.6"
-            stroke-linecap="round" stroke-linejoin="round" transform="rotate(90 269 195)"/>
-      <text x="284" y="200" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="13" font-weight="500" fill="rgb(249,250,251)">GPT 网关</text>
-      <text x="726" y="200" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11" fill="rgb(173,178,184)">3</text>
+      <!-- 折叠指示：向下的箭头（展开态） -->
+      <path d="M348 128 L352 133 L356 128" fill="none" stroke="rgb(173,178,184)" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="364" y="133" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12.5"
+            font-weight="500" fill="rgb(249,250,251)">GPT 网关</text>
+      <text x="674" y="133" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+            font-size="11" fill="rgb(129,133,140)">3</text>
     </g>
 
-    <!-- 当前模型行：高亮 + 勾选 -->
-    <rect x="258" y="210" width="500" height="34" rx="8" fill="rgb(255,255,255)" fill-opacity="0.08"/>
-    <text x="284" y="232" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="13" font-weight="500" fill="rgb(249,250,251)">GPT-6.2 Sol</text>
-    <path d="M736 223 L741 229 L749 219" fill="none" stroke="rgb(122,170,255)" stroke-width="1.8"
+    <!-- 当前模型：高亮 + 勾选 -->
+    <rect x="340" y="144" width="340" height="32" rx="8" fill="rgb(255,255,255)" fill-opacity="0.08"/>
+    <text x="364" y="165" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12.5"
+          font-weight="500" fill="rgb(249,250,251)">GPT-6.2 Sol</text>
+    <path d="M650 154 L654 159 L661 150" fill="none" stroke="rgb(122,170,255)" stroke-width="1.7"
           stroke-linecap="round" stroke-linejoin="round"/>
 
-    <!-- 同一提供商的其它模型，带插件徽章（本插件保证这些徽章照常显示） -->
-    <text x="284" y="266" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="13" fill="rgb(249,250,251)">GPT-6.2 Astra</text>
-    <rect x="392" y="251" width="62" height="18" rx="6" fill="rgb(53,54,56)"/>
-    <text x="423" y="264" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10" font-weight="500" fill="rgb(207,211,214)">订阅专属</text>
+    <!-- 其它模型，带提供商徽章 -->
+    <text x="364" y="197" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12.5"
+          fill="rgb(249,250,251)">GPT-6.2 Astra</text>
+    <rect x="462" y="183" width="62" height="17" rx="6" fill="rgb(53,54,56)"/>
+    <text x="493" y="195" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+          font-size="9.5" font-weight="500" fill="rgb(207,211,214)">订阅专属</text>
 
-    <text x="284" y="300" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="13" fill="rgb(249,250,251)">GPT-6.1 Terra</text>
-    <rect x="392" y="285" width="50" height="18" rx="6" fill="rgb(53,54,56)"/>
-    <text x="417" y="298" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10" font-weight="500" fill="rgb(207,211,214)">-50%</text>
+    <text x="364" y="229" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12.5"
+          fill="rgb(249,250,251)">GPT-6.1 Terra</text>
+    <rect x="462" y="215" width="50" height="17" rx="6" fill="rgb(53,54,56)"/>
+    <text x="487" y="227" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+          font-size="9.5" font-weight="500" fill="rgb(207,211,214)">-50%</text>
 
-    <!-- ===== 被折叠起来的其它提供商，也就是这个插件存在的原因 ===== -->
-    <line x1="258" y1="318" x2="758" y2="318" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
+    <line x1="340" y1="244" x2="680" y2="244" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
+
+    <!-- ===== 分组 2-6：已折叠 ===== -->
+    <!-- 折叠态：向右的箭头 + 变淡的标题 + 模型数量 -->
     <g>
-      <path d="M266 333 L272 339 L266 345" fill="none" stroke="rgb(173,178,184)" stroke-width="1.6"
+      <path d="M348 270 L353 274.5 L348 279" fill="none" stroke="rgb(173,178,184)" stroke-width="1.5"
             stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="284" y="344" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="13" font-weight="500" fill="rgb(207,211,214)">DeepSeek 账号</text>
-      <text x="726" y="344" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11" fill="rgb(173,178,184)">12</text>
+      <text x="364" y="279" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12.5"
+            font-weight="500" fill="rgb(173,178,184)">DeepSeek 账号</text>
+      <text x="674" y="279" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+            font-size="11" fill="rgb(129,133,140)">12</text>
+    </g>
+    <g>
+      <path d="M348 306 L353 310.5 L348 315" fill="none" stroke="rgb(173,178,184)" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="364" y="315" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12.5"
+            font-weight="500" fill="rgb(173,178,184)">月之暗面</text>
+      <text x="674" y="315" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+            font-size="11" fill="rgb(129,133,140)">4</text>
+    </g>
+    <g>
+      <path d="M348 342 L353 346.5 L348 351" fill="none" stroke="rgb(173,178,184)" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="364" y="351" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12.5"
+            font-weight="500" fill="rgb(173,178,184)">智谱 AI</text>
+      <text x="674" y="351" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+            font-size="11" fill="rgb(129,133,140)">5</text>
+    </g>
+    <g>
+      <path d="M348 378 L353 382.5 L348 387" fill="none" stroke="rgb(173,178,184)" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="364" y="387" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12.5"
+            font-weight="500" fill="rgb(173,178,184)">阿里通义</text>
+      <text x="674" y="387" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+            font-size="11" fill="rgb(129,133,140)">6</text>
+    </g>
+    <g>
+      <path d="M348 414 L353 418.5 L348 423" fill="none" stroke="rgb(173,178,184)" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="364" y="423" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12.5"
+            font-weight="500" fill="rgb(173,178,184)">MiniMax</text>
+      <text x="674" y="423" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+            font-size="11" fill="rgb(129,133,140)">3</text>
+    </g>
+    <g>
+      <path d="M348 450 L353 454.5 L348 459" fill="none" stroke="rgb(173,178,184)" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="364" y="459" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12.5"
+            font-weight="500" fill="rgb(173,178,184)">阶跃星辰</text>
+      <text x="674" y="459" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+            font-size="11" fill="rgb(129,133,140)">2</text>
     </g>
 
-    <g>
-      <path d="M266 367 L272 373 L266 379" fill="none" stroke="rgb(173,178,184)" stroke-width="1.6"
-            stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="284" y="378" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="13" font-weight="500" fill="rgb(207,211,214)">月之暗面</text>
-      <text x="726" y="378" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11" fill="rgb(173,178,184)">4</text>
-    </g>
-    <g>
-      <path d="M266 401 L272 407 L266 413" fill="none" stroke="rgb(173,178,184)" stroke-width="1.6"
-            stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="284" y="412" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="13" font-weight="500" fill="rgb(207,211,214)">智谱 AI</text>
-      <text x="726" y="412" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11" fill="rgb(173,178,184)">5</text>
-    </g>
-    <g>
-      <path d="M266 435 L272 441 L266 447" fill="none" stroke="rgb(173,178,184)" stroke-width="1.6"
-            stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="284" y="446" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="13" font-weight="500" fill="rgb(207,211,214)">阿里通义</text>
-      <text x="726" y="446" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11" fill="rgb(173,178,184)">6</text>
-    </g>
-    <g>
-      <path d="M266 469 L272 475 L266 481" fill="none" stroke="rgb(173,178,184)" stroke-width="1.6"
-            stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="284" y="480" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="13" font-weight="500" fill="rgb(207,211,214)">MiniMax</text>
-      <text x="726" y="480" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11" fill="rgb(173,178,184)">3</text>
-    </g>
+    <!-- 推理强度行（自带能力，仍在） -->
+    <line x1="330" y1="492" x2="690" y2="492" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
+    <text x="348" y="515" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11.5"
+          fill="rgb(173,178,184)">推理强度</text>
+    <rect x="404" y="503" width="34" height="18" rx="9" fill="none" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
+    <text x="421" y="516" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+          font-size="10" fill="rgb(207,211,214)">低</text>
+    <rect x="444" y="503" width="34" height="18" rx="9" fill="none" stroke="rgb(122,170,255)"/>
+    <text x="461" y="516" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+          font-size="10" fill="rgb(249,250,251)">高</text>
+    <rect x="484" y="503" width="40" height="18" rx="9" fill="none" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
+    <text x="504" y="516" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+          font-size="10" fill="rgb(207,211,214)">最高</text>
+
+    <!-- Agent 团队开关（其它插件的贡献，照常显示） -->
+    <line x1="330" y1="536" x2="690" y2="536" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
+    <text x="348" y="560" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11.5"
+          fill="rgb(173,178,184)">启用 Agent 团队</text>
+    <rect x="628" y="548" width="30" height="16" rx="8" fill="rgb(53,54,56)"/>
+    <circle cx="636" cy="556" r="6" fill="rgb(173,178,184)"/>
   </g>
 
-  <!-- 面板描边压在裁剪层之上 -->
-  <rect x="248" y="84" width="520" height="500" rx="14" fill="none" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
+  <!-- 菜单描边 -->
+  <rect x="330" y="60" width="360" height="520" rx="12" fill="none" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
 
-  <!-- ============ 底部：当前模型 + 推理强度 ============ -->
-  <line x1="248" y1="512" x2="768" y2="512" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
-  <g font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif">
-    <text x="264" y="536" font-size="12" fill="rgb(173,178,184)">当前模型</text>
-    <text x="322" y="536" font-size="12" fill="rgb(249,250,251)">GPT-6.2 Sol</text>
-
-    <text x="470" y="536" font-size="12" fill="rgb(173,178,184)">推理强度</text>
-    <rect x="530" y="522" width="40" height="20" rx="10" fill="none" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
-    <text x="550" y="536" text-anchor="middle" font-size="11" fill="rgb(207,211,214)">低</text>
-    <rect x="576" y="522" width="40" height="20" rx="10" fill="none" stroke="rgb(122,170,255)"/>
-    <text x="596" y="536" text-anchor="middle" font-size="11" fill="rgb(249,250,251)">高</text>
-    <rect x="622" y="522" width="46" height="20" rx="10" fill="none" stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
-    <text x="645" y="536" text-anchor="middle" font-size="11" fill="rgb(207,211,214)">最高</text>
-  </g>
-
-  <!-- ============ 注释：内置菜单里新增的那一行 ============ -->
+  <!-- ===== 注释：点标题折叠 ===== -->
   <g>
-    <line x1="258" y1="556" x2="298" y2="536" stroke="rgb(122,170,255)" stroke-width="1.5" stroke-opacity="0.75"/>
-    <circle cx="258" cy="556" r="3" fill="rgb(122,170,255)"/>
+    <line x1="330" y1="315" x2="272" y2="315" stroke="rgb(122,170,255)" stroke-width="1.4" stroke-opacity="0.8"/>
+    <circle cx="330" cy="315" r="2.6" fill="rgb(122,170,255)"/>
+    <text x="24" y="300" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11"
+          fill="rgb(249,250,251)">点标题即可折叠该提供商</text>
+    <text x="24" y="318" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5"
+          fill="rgb(129,133,140)">收起后仍显示模型数量</text>
+  </g>
 
-    <!-- 内置模型菜单的缩略示意，含它现在多出来的这一行 -->
-    <g>
-      <rect x="24" y="466" width="234" height="76" rx="10" fill="rgb(44,44,46)"
-            stroke="rgb(255,255,255)" stroke-opacity="0.06"/>
-      <rect x="32" y="474" width="218" height="30" rx="8" fill="rgb(122,170,255)" fill-opacity="0.14"/>
-      <g stroke="rgb(173,178,184)" stroke-width="1.4" stroke-linecap="round">
-        <path d="M42 484 L58 484"/>
-        <path d="M44 491 L56 491"/>
-        <path d="M44 498 L56 498"/>
-        <path d="M42 504 L58 504"/>
-        <path d="M40 486 L40 502" stroke-opacity="0.45"/>
-      </g>
-      <text x="64" y="493" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5" fill="rgb(249,250,251)">全部模型（按提供商折叠）</text>
-      <!-- 它下面的内置行 -->
-      <text x="42" y="519" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5" fill="rgb(129,133,140)">模型</text>
-      <text x="196" y="519" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5" fill="rgb(129,133,140)">GPT-6.2 Sol  ›</text>
-    </g>
-    <text x="24" y="562" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10" fill="rgb(129,133,140)">
-      本插件加进内置菜单的那一行
-    </text>
+  <!-- ===== 注释：分组与搜索是自带能力 ===== -->
+  <g>
+    <line x1="690" y1="133" x2="740" y2="133" stroke="rgb(173,178,184)" stroke-width="1.2" stroke-opacity="0.6"/>
+    <text x="746" y="129" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5"
+          fill="rgb(207,211,214)">展开态</text>
+    <text x="746" y="143" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="9.5"
+          fill="rgb(129,133,140)">显示模型行</text>
+
+    <line x1="690" y1="315" x2="740" y2="315" stroke="rgb(173,178,184)" stroke-width="1.2" stroke-opacity="0.6"/>
+    <text x="746" y="311" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5"
+          fill="rgb(207,211,214)">折叠态</text>
+    <text x="746" y="325" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="9.5"
+          fill="rgb(129,133,140)">只留标题</text>
+  </g>
+
+  <!-- ===== 标注：未改动的部分 ===== -->
+  <g>
+    <text x="24" y="392" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5"
+          fill="rgb(129,133,140)">分组与搜索是 DSH 自带能力，</text>
+    <text x="24" y="408" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5"
+          fill="rgb(129,133,140)">本插件只补「可折叠」这一点。</text>
+
+    <text x="24" y="470" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5"
+          fill="rgb(129,133,140)">推理强度、Agent 团队开关等</text>
+    <text x="24" y="486" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="10.5"
+          fill="rgb(129,133,140)">其它插件的内容照常工作。</text>
   </g>
 
   <!-- 图例 -->
-  <text x="480" y="612" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="11" fill="rgb(129,133,140)">
-    提供商可折叠 · 一个搜索框 · 当前模型与推理强度始终可见
+  <text x="480" y="612" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+        font-size="11" fill="rgb(129,133,140)">
+    在自带菜单里原地增强 · 不替换任何组件
   </text>
 </svg>
