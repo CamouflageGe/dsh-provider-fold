@@ -6,6 +6,28 @@ Makes the provider groups in DeepSeek Harness's **built-in model menu** collapsi
 
 ![Only the current provider is expanded in the model menu; the rest are folded](docs/preview.svg)
 
+## What this plugin does not do
+
+Several "enhanced model picker" plugins already exist, and they **build a replacement panel**. This one deliberately does not, because the built-in model menu **already has**:
+
+- models grouped by provider,
+- a search field (shown past four models, with fuzzy ranking),
+- reasoning-effort switching,
+- whatever other plugins contribute (the Agent Teams switch, provider badges, price hints).
+
+The **only** thing missing is that a provider heading cannot be folded, so a dozen providers and a hundred models stay laid out flat.
+
+So this adds exactly that, inside the **existing** menu:
+
+| | Typical "replacement picker" | This plugin |
+|---|---|---|
+| UI | a new panel | the built-in menu |
+| Slot registrations | takes over or replaces | **none** |
+| Other plugins' controls and badges | may be dropped | **all keep working** |
+| After uninstalling | needs cleanup | the menu is unchanged |
+
+Because it registers no slots and replaces no component, the Agent Teams switch, WorkBuddy's credit and promotion chips, and price hints contributed by other plugins are never lost.
+
 ---
 
 ## Install

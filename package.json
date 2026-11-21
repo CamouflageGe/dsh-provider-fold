@@ -1,7 +1,7 @@
 {
   "name": "dsh-provider-fold",
   "version": "1.0.0",
-  "description": "Fold the provider groups in the DeepSeek Harness model menu: only your current provider expands, the rest collapse. Install with: dsh plugin add github:CamouflageGe/dsh-provider-fold",
+  "description": "Fold the provider groups in the DSH model menu — no second picker, no slot registration, no replaced component. Only your current provider expands, the rest collapse. Install: dsh plugin add dsh-provider-fold",
   "type": "module",
   "exports": {
     ".": "./index.js",
@@ -24,10 +24,10 @@
     "dsh",
     "dsh-plugin",
     "deepseek-harness",
-    "model-picker",
     "model-menu",
     "collapsible",
-    "provider-groups"
+    "provider-groups",
+    "composer-ui"
   ],
   "dsh": {
     "bundle": {
