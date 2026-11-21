@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Model picker",
+    "description": "Adds a collapsible, searchable model chooser to the composer. The built-in model menu gains the row \"All models (grouped by provider)\", which opens a panel listing every model by provider; each provider folds, and the search field matches model names, model ids and provider names (multiple words are ANDed). Picking a model switches the session exactly as the built-in menu does, so the composer chip, the /model popup and this panel always agree. Reasoning effort for the current model can be changed from the panel footer. Because it extends the built-in menu instead of replacing it, the Agent Teams switch, provider badges and price hints from other plugins keep working. Keyboard: arrows move the highlight, Enter selects, Escape closes."
+  }
+}
