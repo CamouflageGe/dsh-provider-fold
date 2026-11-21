@@ -40,39 +40,56 @@ git clone https://github.com/CamouflageGe/dsh-model-picker.git
 
 ## 使用方法
 
-1. 在输入框点模型按钮，打开模型菜单。
-2. 选第一行「全部模型（按提供商折叠）」。
-3. 折叠不需要的提供商，或直接输入搜索。
-4. 选中模型——面板关闭，会话立即切换。
+1. 在输入框点模型按钮——**直接**打开选择面板。
+2. 折叠不需要的提供商，或直接输入搜索。
+3. 选中模型——面板关闭，会话立即切换。
+4. 面板底部可切换推理强度；再往下是其他插件注入的会话选项（如 Agent 团队开关）。
 
-## 为什么是扩展而不是替换内置菜单
+## 它替换了什么
+
+本插件**接管了输入框的模型按钮**（`conversation.input.model`，`priority: -1`，
+低于内置的 0，所以内置按钮不再渲染），因此一次点击就能进面板。
+
+内置的模型菜单和它的推理强度子面板随之不再出现；它们的能力被本面板覆盖：
+
+| 内置能力 | 本插件的承接位置 |
+|---|---|
+| 模型列表 | 面板的分组列表 + 搜索 |
+| 推理强度 | 面板底部 chips |
+| 其他插件注入的会话选项（Agent 团队开关等） | 面板底部逐条转接 |
+| 提供商徽章（WorkBuddy 小火箭、优惠等） | 按钮与每行都经转接渲染 |
+
+### 为什么必须转接，不能直接沿用
 
 内置模型控件是一个 `single` 插槽，它**声明**了两个子插槽
 （`conversation.input.model.label` 和 `conversation.input.model.options`）。
-Harness 的插槽注册表规定每个 key 只能有一个声明者：
+插槽注册表规定每个 key 只能有一个声明者：
 
 - 第二个去声明的注册会抛 `already declared`；
 - 完全不声明的注册拿不到 `renderSlot`，无法渲染别人的贡献。
 
-所以一个顶替模型控件的插件**无法**重新挂载其他插件的贡献——Agent 团队开关、
-提供商徽章、价格提示都会消失。因此本插件改为贡献两处：
+所以顶替之后，本插件**不能**再渲染这两个子插槽。做法改为：从公开注册表取出每个
+子插槽当前获胜的组件，用内置控件**完全相同的 owner props** 自己渲染它。
 
-| 插槽 | id | order | 用途 |
-|---|---|---|---|
-| `conversation.input.model.options` | `model-picker` | `-10` | 内置菜单里的入口行 |
-| `conversation.input.overlay` | `model-picker` | `90` | 选择面板（portal 到 `document.body`） |
-
-### 提供商标签依然生效
-
-每个模型的徽章由其他插件注册进子插槽 `conversation.input.model.label`。
-只有该插槽的声明者能渲染它，所以替换式插件会丢掉全部徽章。本插件从公开注册表
-里取出当前获胜的注册，并用内置控件**完全相同的 owner props** 渲染该组件：
+提供商徽章（`conversation.input.model.label`）：
 
 ```js
 { provider, model, placement: 'option' | 'menu' | 'trigger', selected }
 ```
 
-某个提供商组件报错时会被 error boundary 兜住，退化成纯模型名，单个坏插件不会让整个面板空白。
+会话选项（`conversation.input.model.options`）：
+
+```js
+{ locked, dismiss, reportFailure, ...inject(sessionId), t }
+```
+
+每个转接组件都单独包在 error boundary 里——某个插件报错只会让它自己消失，
+不会让整个面板空白。
+
+### 想回到内置菜单？
+
+删除 `apply()` 里注册 `conversation.input.model` 的那一段（`priority: -1`），
+内置按钮与菜单就会恢复，其余功能不受影响。
 
 ## 环境要求
 
@@ -96,6 +113,8 @@ window.__ModuleLoader__.load({ id: 'dsh-model-picker', factory(require) { /* …
 - 视觉验证需要用户自行确认；本仓库不附带自动化浏览器测试。
 - 面板是模态对话框：会锁住 `Tab`，`Esc` 关闭。
 - 搜索是子串/子序列匹配，不做模糊拼写纠正。
+- 因为接管了模型按钮，内置菜单的「按提供商以外的方式浏览」等原生行为不再提供；
+  需要时可按上面的「想回到内置菜单」撤销。
 
 ## 许可证
 

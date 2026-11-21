@@ -54,6 +54,8 @@ window.__ModuleLoader__.load({
       'panel.sessionInUse': '当前会话被其他实例占用，请退出其他正在运行的 DSH 后重试',
       'panel.found': '找到 {count} 个模型',
       'provider.account': 'DeepSeek 账号',
+      'trigger.select': '选择模型',
+      'trigger.providerDefault': '默认',
     };
     const en = {
       'row.label': 'All models (grouped by provider)',
@@ -81,6 +83,8 @@ window.__ModuleLoader__.load({
       'panel.sessionInUse': 'Another DSH instance owns this session — quit it and retry',
       'panel.found': '{count} models found',
       'provider.account': 'DeepSeek Account',
+      'trigger.select': 'Select model',
+      'trigger.providerDefault': 'Default',
     };
 
     /** Tiny observable store: the menu row pokes it, the overlay renders it. */
@@ -196,10 +200,145 @@ window.__ModuleLoader__.load({
         h(entry.component, { provider, model, placement, selected, ...extra }));
     }
 
+    /**
+     * Contain one provider/plugin component's failure: a plugin that throws
+     * must degrade to the given fallback, never blank this panel.
+     */
+    class Boundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { failed: false };
+      }
+
+      static getDerivedStateFromError() { return { failed: true } }
+
+      componentDidCatch() { /* the caller keeps its fallback */ }
+
+      render() { return this.state.failed ? this.props.fallback : this.props.children }
+    }
+
+    /**
+     * The session options other plugins register for the model menu
+     * (`conversation.input.model.options`).
+     *
+     * The shipped seat owns that declaration, and replacing the seat means its
+     * `renderSlot` call never happens — the Agent Teams switch would silently
+     * disappear. The registrations are still public, so each winner is rendered
+     * here with the shipped owner props (`locked`, `dismiss`, `reportFailure`)
+     * and its own `inject(sessionId)` face.
+     */
+    function SessionOptions({ sessionId, locked, close, t }) {
+      React.useSyncExternalStore(labelUi.subscribe, labelUi.getSnapshot);
+      const slots = rootCtx === undefined ? undefined : rootCtx.get('slots');
+      if (slots === undefined || slots === null) return null;
+      let entries;
+      try { entries = slots.entriesOfSlot('conversation.input.model.options') } catch { return null }
+      if (!Array.isArray(entries) || entries.length === 0) return null;
+
+      const owner = {
+        locked,
+        dismiss: close,
+        reportFailure: () => { /* failures surface through the component itself */ },
+      };
+      return h('div', { className: 'dmp-options' }, entries.map((entry, index) => {
+        const key = entry.options === undefined || entry.options.id === undefined
+          ? 'option-' + index
+          : entry.options.id;
+        let injected = {};
+        if (typeof entry.inject === 'function') {
+          try { injected = entry.inject(sessionId) || {} } catch { injected = {} }
+        }
+        const extra = entry.locale === undefined
+          ? {}
+          : { t: rootCtx.get('locale').bind(entry.locale) };
+        return h(Boundary, { key, fallback: null },
+          h(entry.component, { ...owner, ...injected, ...extra, sessionId }));
+      }));
+    }
+
     /** Same provider order the shipped pickers use: account, official, then the rest. */
     function orderProviders(groups) {
       const rank = (id) => (id === 'deepseek-account' ? 0 : id === 'deepseek-official' ? 1 : 2);
       return groups.slice().sort((left, right) => rank(left.id) - rank(right.id));
+    }
+
+    /**
+     * The composer model trigger, replaced at `priority: -1` so one click opens
+     * the picker.
+     *
+     * It declares NO child slots on purpose: `conversation.input.model.label`
+     * and `.options` are already declared by the shipped seat, and a second
+     * declaration throws. Provider badges still reach this trigger through
+     * {@link ModelLabel}, which renders the winning label component with the
+     * shipped owner props.
+     */
+    function ModelTrigger(props) {
+      const { t } = props;
+      const directory = props.directory;
+      const available = props.available === true;
+
+      const subscribe = React.useCallback(
+        (listener) => (directory === undefined ? () => {} : directory.subscribe(listener)),
+        [directory],
+      );
+      const read = React.useCallback(
+        () => (directory === undefined ? undefined : directory.getSnapshot()),
+        [directory],
+      );
+      const state = React.useSyncExternalStore(subscribe, read);
+      const openState = React.useSyncExternalStore(ui.subscribe, ui.getSnapshot);
+
+      React.useEffect(() => {
+        if (!available || typeof props.load !== 'function') return;
+        try { props.load() } catch { /* the shared store carries the failure */ }
+      }, [available, props.load]);
+
+      if (!available) return null;
+
+      const groups = orderProviders(state === undefined ? [] : state.groups ?? []);
+      const current = state === undefined ? null : state.current;
+      const group = current === null
+        ? undefined
+        : groups.find((item) => item.id === current.provider);
+      const model = group === undefined || current === null
+        ? undefined
+        : group.models.find((item) => item.id === current.model);
+      const reasoning = model === undefined ? undefined : model.reasoning;
+      const effort = current === null ? undefined : current.reasoningEffort ?? (reasoning === undefined ? undefined : reasoning.defaultEffort);
+      const effortLabel = reasoning === undefined
+        ? (state === undefined ? undefined : state.retainedEffort)
+        : effort === undefined
+          ? t('trigger.providerDefault')
+          : (reasoning.efforts.find((level) => level.id === effort) || {}).name || effort;
+      const pending = state === undefined ? null : state.pending;
+      const label = model === undefined ? t('trigger.select') : model.name;
+      const title = effortLabel === undefined ? label : label + ' · ' + effortLabel;
+
+      return h('div', { className: 'dmp-seat' },
+        h('button', {
+          type: 'button',
+          className: 'dmp-trigger',
+          'aria-label': title,
+          'aria-haspopup': 'dialog',
+          'aria-expanded': openState.open === true,
+          title,
+          disabled: props.locked === true,
+          onClick: () => { ui.set({ open: true }) },
+        },
+          h(Magnifier, { size: 14 }),
+          h('span', { className: 'dmp-triggerLabel' },
+            model === undefined || group === undefined
+              ? label
+              : h(ModelLabel, {
+                provider: group,
+                model,
+                placement: 'trigger',
+                selected: true,
+              })),
+          effortLabel === undefined ? null : h('span', { className: 'dmp-triggerEffort' }, effortLabel),
+          pending !== null
+            ? h('span', { className: 'dmp-triggerDot' })
+            : h(Chevron, { open: false })));
     }
 
     /** Case-insensitive ordered-subsequence test — the shipped search's matching idea. */
@@ -276,46 +415,11 @@ window.__ModuleLoader__.load({
       }, h('circle', { cx: 7, cy: 7, r: 4.5 }), h('path', { d: 'M10.5 10.5 14 14' }));
     }
 
-    /** Grouped-list glyph: this row opens a provider-grouped browser, not a plain search. */
-    function GroupedList() {
-      return h('svg', {
-        viewBox: '0 0 16 16', width: 14, height: 14, 'aria-hidden': true,
-        fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round',
-      },
-        h('path', { d: 'M2.5 3.5h11' }),
-        h('path', { d: 'M4.5 7h9' }),
-        h('path', { d: 'M4.5 10.5h9' }),
-        h('path', { d: 'M2.5 14h11' }),
-        h('path', { d: 'M2.5 6v9', opacity: 0.45 }));
-    }
-
     function Check() {
       return h('svg', {
         viewBox: '0 0 16 16', width: 14, height: 14, 'aria-hidden': true, fill: 'none',
         stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round',
       }, h('path', { d: 'M3 8.5 6.5 12 13 4.5' }));
-    }
-
-    /**
-     * A row inside the shipped model menu. `dismiss()` is the shipped seat's own
-     * documented handoff (close the menu, focus the trigger) before another
-     * overlay opens, so focus never fights between the two surfaces.
-     */
-    function PickerMenuRow(props) {
-      return h('button', {
-        type: 'button',
-        role: 'menuitem',
-        className: 'dmp-row',
-        disabled: props.locked,
-        title: props.t('row.title'),
-        onClick: () => {
-          props.dismiss();
-          ui.set({ open: true });
-        },
-      },
-        h('span', { className: 'dmp-rowIcon' }, h(GroupedList)),
-        h('span', { className: 'dmp-rowLabel' }, props.t('row.label')),
-        h('span', { className: 'dmp-rowHint' }, props.t('row.hint')));
     }
 
     /** The picker itself: one shared directory store, the same writes the chip uses. */
@@ -728,7 +832,11 @@ window.__ModuleLoader__.load({
                 className: effectiveEffort === effort.id ? 'dmp-chip dmp-chipOn' : 'dmp-chip',
                 title: effort.description ?? effort.name,
                 onClick: () => { void chooseEffort(effort.id) },
-              }, effort.name))))));
+              }, effort.name))))),
+
+          // Relay other plugins' model-menu options (the Agent Teams switch and
+          // any future one): the replaced seat no longer renders that slot.
+          h(SessionOptions, { sessionId, locked: busy, close, t }));
     }
 
     /**
@@ -820,6 +928,11 @@ window.__ModuleLoader__.load({
   background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:11px;cursor:pointer;}
 .dmp-chip:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);}
 .dmp-chipOn{border-color:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-label-primary);}
+/* Relayed session options (Agent Teams switch and friends) sit under the
+   footer, matching where the shipped menu drew them. */
+.dmp-options{display:flex;flex-direction:column;gap:2px;padding:4px 12px 8px;
+  border-top:1px solid var(--dsw-alias-border-l1);}
+.dmp-options > *{min-width:0;}
 .dmp-row{display:flex;align-items:center;gap:8px;width:100%;min-width:100%;padding:7px 8px;border:none;
   border-radius:var(--dsw-radius-md,8px);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;
   font-size:13px;line-height:20px;text-align:left;cursor:pointer;}
@@ -829,6 +942,23 @@ window.__ModuleLoader__.load({
 .dmp-rowLabel{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .dmp-rowHint{flex:0 0 auto;color:var(--dsw-alias-label-caption);font-size:11px;}
 @media (max-width:520px){.dmp-panel{max-height:min(80vh,660px);border-radius:var(--dsw-radius-lg,12px);}}
+
+/* The replacement composer seat: matches the shipped trigger's chip metrics
+   (28px tall, 13/20 regular, caption chevron) so the tool row keeps its rhythm. */
+.dmp-seat{position:relative;min-width:0;}
+.dmp-trigger{display:flex;align-items:center;gap:4px;min-width:0;max-width:360px;height:28px;
+  padding:0 4px 0 8px;border:none;border-radius:var(--dsw-radius-sm,6px);outline:none;
+  background:transparent;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px;
+  font-weight:400;cursor:pointer;font-family:inherit;}
+.dmp-trigger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);}
+.dmp-trigger:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-state-business-primary);}
+.dmp-trigger:disabled{color:var(--dsw-alias-label-dimmed);cursor:default;}
+.dmp-triggerLabel{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  display:flex;align-items:center;gap:4px;}
+.dmp-triggerEffort{flex-shrink:1000;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;color:var(--dsw-alias-label-caption);}
+.dmp-triggerDot{flex:0 0 auto;width:7px;height:7px;border-radius:50%;
+  background:var(--dsw-alias-state-business-primary);}
 `;
 
     /**
@@ -854,21 +984,48 @@ window.__ModuleLoader__.load({
       document.head.appendChild(style);
       ctx.effect(() => () => { style.remove() }, 'model-picker: stylesheet');
 
-      // 1. A row inside the shipped model menu, above the other session options.
-      ctx.slots.inject('conversation.input.model.options', () => ctx.slots.register({
-        name: 'conversation.input.model.options',
-        id: 'model-picker',
-        order: -10,
-        locale: NS,
-      }, PickerMenuRow));
-
-      // 2. The picker overlay on the composer's floating layer.
+      // 1. The picker overlay on the composer's floating layer.
       ctx.slots.inject('conversation.input.overlay', () => ctx.slots.register({
         name: 'conversation.input.overlay',
         id: 'model-picker',
         order: 90,
         locale: NS,
       }, PickerOverlay));
+
+      // 3. Replace the composer's model SEAT so one click opens the picker.
+      //
+      // `single` slots shadow by priority (lowest live entry renders, see
+      // SlotCore.register + entriesOfSlot), so -1 wins over the shipped 0.
+      // This registration declares NO children: `conversation.input.model.label`
+      // and `.options` already have their declarer and a second one throws.
+      // Provider badges still reach this trigger through ModelLabel.
+      //
+      // The shipped menu and its effort pane go away with the replaced seat;
+      // the picker covers models and effort in its own footer. Delete this
+      // registration to fall back to the shipped menu plus the entry row.
+      ctx.slots.inject('conversation.input.model', () => ctx.slots.register({
+        name: 'conversation.input.model',
+        priority: -1,
+        locale: NS,
+        inject: (sessionId) => {
+          const models = rootCtx.get('modelDirectories');
+          const sessions = rootCtx.get('sessions');
+          const locale = rootCtx.get('locale');
+          const directory = models.directoryFor(sessionId);
+          const available = sessions.subagentAddress(sessionId) === undefined;
+          return {
+            available,
+            directory: directory.store,
+            load: () => {
+              if (available) directory.load().catch(() => { /* surfaced on the store */ });
+            },
+            select: (selection) => (available
+              ? directory.select(selection)
+              : Promise.resolve(undefined)),
+            resolveText: (text) => (locale === undefined ? '' : locale.resolveText(text)),
+          };
+        },
+      }, ModelTrigger));
 
       // Never leave the panel open across an unload.
       ctx.effect(() => () => { ui.set({ open: false }) }, 'model-picker: close on unload');

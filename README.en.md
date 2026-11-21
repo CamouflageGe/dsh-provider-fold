@@ -40,12 +40,29 @@ Then in the DSH Web GUI open **Plugins → Add plugin** and point it at the clon
 
 ## How to use it
 
-1. Open the model menu from the composer's model button.
-2. Pick the first row, **All models (grouped by provider)**.
-3. Fold the providers you do not need, or type to search.
-4. Pick a model — the panel closes and the session switches immediately.
+1. Click the composer's model button — the picker opens **directly**.
+2. Fold the providers you do not need, or type to search.
+3. Pick a model — the panel closes and the session switches immediately.
+4. The footer switches reasoning effort; below it sit the session options other
+   plugins inject (the Agent Teams switch, for example).
 
-## Why it extends instead of replacing the built-in menu
+## What it replaces
+
+This plugin **takes over the composer's model button**
+(`conversation.input.model` at `priority: -1`, below the shipped `0`, so the
+built-in button stops rendering) — which is what makes one click enough.
+
+The shipped model menu and its effort pane no longer appear; their capabilities
+live on here:
+
+| Shipped capability | Where this plugin carries it |
+|---|---|
+| the model list | the grouped list plus search |
+| reasoning effort | the footer chips |
+| session options injected by other plugins (Agent Teams switch, …) | relayed one by one under the footer |
+| provider badges (load, promotion, …) | relayed in the button and every row |
+
+### Why relaying is required
 
 The built-in model control is a `single` slot that **declares** two child slots
 (`conversation.input.model.label` and `conversation.input.model.options`). The
@@ -54,29 +71,29 @@ harness slot registry allows exactly one declarer per key:
 - a second registration that declares them throws `already declared`;
 - one that declares nothing receives no `renderSlot` face.
 
-So a plugin that shadows the model control cannot re-host other plugins'
-contributions — the Agent Teams switch, provider badges and price tooltips
-would all disappear. This plugin therefore contributes two things instead:
+So after shadowing, this plugin cannot render those two child slots itself.
+Instead it reads each slot's winning registration out of the public registry and
+renders that component with the same owner props the built-in control used.
 
-| Slot | id | order | Purpose |
-|---|---|---|---|
-| `conversation.input.model.options` | `model-picker` | `-10` | the entry row inside the built-in menu |
-| `conversation.input.overlay` | `model-picker` | `90` | the picker panel (portaled to `document.body`) |
-
-### Provider labels still work
-
-Per-model badges are registered by other plugins into the child slot
-`conversation.input.model.label`. Only that slot's declarer may render it, so a
-replacement picker would drop every badge. This plugin reads the winning
-registration out of the public registry and renders that component with the
-same owner props the built-in control uses:
+Provider labels (`conversation.input.model.label`):
 
 ```js
 { provider, model, placement: 'option' | 'menu' | 'trigger', selected }
 ```
 
-A failing provider component is contained by an error boundary and degrades to
-the plain catalog name, so one broken plugin can never blank the panel.
+Session options (`conversation.input.model.options`):
+
+```js
+{ locked, dismiss, reportFailure, ...inject(sessionId), t }
+```
+
+Every relayed component sits in its own error boundary: one broken plugin
+disappears on its own instead of blanking the panel.
+
+### Want the built-in menu back?
+
+Delete the `conversation.input.model` registration (`priority: -1`) inside
+`apply()`; the shipped button and menu return and nothing else changes.
 
 ## Requirements
 
@@ -103,6 +120,8 @@ browser loads the new bundle generation.
   browser test.
 - The panel is a modal dialog; it traps `Tab` and closes on `Esc`.
 - Search is substring/subsequence matching, not fuzzy typo correction.
+- Because it takes over the model button, the shipped menu's native browsing is
+  gone; undo it with "Want the built-in menu back?" above if you need it.
 
 ## License
 
