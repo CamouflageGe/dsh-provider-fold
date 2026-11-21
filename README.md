@@ -1,36 +1,36 @@
 # dsh-model-picker
 
-English | [中文](README.zh.md)
+中文 | [English](README.en.md)
 
-A collapsible, searchable **model picker** for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web GUI.
+一个可折叠、可搜索的**模型选择器**，为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web 界面而做。
 
-![The model picker open in the composer: providers as collapsible groups, search results, and reasoning-effort chips](docs/preview.svg)
+![输入框里的模型选择器：提供商可折叠分组、搜索结果与推理强度切换](docs/preview.zh.svg)
 
-When a profile carries a dozen providers and a hundred models, the built-in model menu lays every row out flat — scrolling to find one model is the slowest part of switching. This plugin gives the menu a browser: models are grouped by provider, every provider folds, and one search field matches model names, model ids and provider names.
+当一个配置里有十几个提供商、上百个模型时，内置模型菜单会把所有行平铺出来——翻找某个模型就成了切换模型里最慢的一步。这个插件给菜单加了一个浏览器：模型按提供商分组，每个提供商可以折叠，一个搜索框同时匹配模型名、模型 id 和提供商名。
 
-## Features
+## 功能
 
-- **Grouped by provider** — every provider is a collapsible section with its model count.
-- **Opens where you are** — the provider that holds your current model starts expanded.
-- **Search** — matches model name, model id and provider name. Several words are ANDed (`gpt 4.1 mini`), a whole-phrase hit always outranks per-word hits, and short single characters do not match everything.
-- **Reasoning effort** — switch the current model's effort from the panel footer.
-- **Keyboard** — `↑` `↓` move the highlight, `Enter` selects, `Esc` closes, `Tab` stays inside the panel. IME composition is respected, so pinyin candidate paging is not stolen.
-- **One source of truth** — every read and write goes through the shipped `modelDirectories` service, so this panel, the `/model` popup and the composer chip always agree.
-- **Does not replace the built-in menu** — it extends it. Other plugins keep working, including their per-model labels.
+- **按提供商分组**——每个提供商是一个可折叠的分组，并显示模型数量。
+- **从当前位置展开**——当前模型所在的提供商会默认展开。
+- **搜索**——匹配模型名、模型 id 和提供商名。多个词是「同时满足」（`gpt 4.1 mini`），整串命中永远优先于逐词命中，单个字符不会匹配一切。
+- **推理强度**——可在面板底部切换当前模型的推理强度。
+- **键盘**——`↑` `↓` 移动高亮，`Enter` 选中，`Esc` 关闭，`Tab` 不会跑出面板。尊重输入法组合状态，不会抢走拼音候选词的方向键。
+- **唯一数据源**——所有读写都走内置的 `modelDirectories` 服务，因此本面板、`/model` 弹窗和输入框的模型名永远一致。
+- **不替换内置菜单**——它是扩展。其他插件照常工作，包括它们为每个模型挂的标签。
 
-## Install
+## 安装
 
-### From a local checkout
+### 从本地检出安装
 
 ```sh
 git clone https://github.com/CamouflageGe/dsh-model-picker.git
 ```
 
-Then in the DSH Web GUI open **Plugins → Add plugin** and point it at the cloned directory.
+然后在 DSH Web 界面打开 **插件 → 添加插件**，指向克隆下来的目录即可。
 
-### What it adds to the profile
+### 它向配置里加了什么
 
-`cordis.patch.yml` inserts one row:
+`cordis.patch.yml` 插入一行：
 
 ```yaml
 - insert:
@@ -38,72 +38,65 @@ Then in the DSH Web GUI open **Plugins → Add plugin** and point it at the clon
       name: 'dsh-model-picker'
 ```
 
-## How to use it
+## 使用方法
 
-1. Open the model menu from the composer's model button.
-2. Pick the first row, **All models (grouped by provider)**.
-3. Fold the providers you do not need, or type to search.
-4. Pick a model — the panel closes and the session switches immediately.
+1. 在输入框点模型按钮，打开模型菜单。
+2. 选第一行「全部模型（按提供商折叠）」。
+3. 折叠不需要的提供商，或直接输入搜索。
+4. 选中模型——面板关闭，会话立即切换。
 
-## Why it extends instead of replacing the built-in menu
+## 为什么是扩展而不是替换内置菜单
 
-The built-in model control is a `single` slot that **declares** two child slots
-(`conversation.input.model.label` and `conversation.input.model.options`). The
-harness slot registry allows exactly one declarer per key:
+内置模型控件是一个 `single` 插槽，它**声明**了两个子插槽
+（`conversation.input.model.label` 和 `conversation.input.model.options`）。
+Harness 的插槽注册表规定每个 key 只能有一个声明者：
 
-- a second registration that declares them throws `already declared`;
-- one that declares nothing receives no `renderSlot` face.
+- 第二个去声明的注册会抛 `already declared`；
+- 完全不声明的注册拿不到 `renderSlot`，无法渲染别人的贡献。
 
-So a plugin that shadows the model control cannot re-host other plugins'
-contributions — the Agent Teams switch, provider badges and price tooltips
-would all disappear. This plugin therefore contributes two things instead:
+所以一个顶替模型控件的插件**无法**重新挂载其他插件的贡献——Agent 团队开关、
+提供商徽章、价格提示都会消失。因此本插件改为贡献两处：
 
-| Slot | id | order | Purpose |
+| 插槽 | id | order | 用途 |
 |---|---|---|---|
-| `conversation.input.model.options` | `model-picker` | `-10` | the entry row inside the built-in menu |
-| `conversation.input.overlay` | `model-picker` | `90` | the picker panel (portaled to `document.body`) |
+| `conversation.input.model.options` | `model-picker` | `-10` | 内置菜单里的入口行 |
+| `conversation.input.overlay` | `model-picker` | `90` | 选择面板（portal 到 `document.body`） |
 
-### Provider labels still work
+### 提供商标签依然生效
 
-Per-model badges are registered by other plugins into the child slot
-`conversation.input.model.label`. Only that slot's declarer may render it, so a
-replacement picker would drop every badge. This plugin reads the winning
-registration out of the public registry and renders that component with the
-same owner props the built-in control uses:
+每个模型的徽章由其他插件注册进子插槽 `conversation.input.model.label`。
+只有该插槽的声明者能渲染它，所以替换式插件会丢掉全部徽章。本插件从公开注册表
+里取出当前获胜的注册，并用内置控件**完全相同的 owner props** 渲染该组件：
 
 ```js
 { provider, model, placement: 'option' | 'menu' | 'trigger', selected }
 ```
 
-A failing provider component is contained by an error boundary and degrades to
-the plain catalog name, so one broken plugin can never blank the panel.
+某个提供商组件报错时会被 error boundary 兜住，退化成纯模型名，单个坏插件不会让整个面板空白。
 
-## Requirements
+## 环境要求
 
-- DeepSeek Harness with the Web GUI (`@deepseek-ai/dsh-client-ui-model-selection`
-  must be active — it is part of the standard web composition).
-- No configuration fields.
+- 带 Web 界面的 DeepSeek Harness（`@deepseek-ai/dsh-client-ui-model-selection`
+  必须处于激活状态，它属于标准 Web 组合）。
+- 没有配置项。
 
-## Development
+## 开发
 
-The client half is a single plain-JavaScript bundle (`client.js`) written
-against the gateway's dynamic module format: no build step, no JSX, React from
-the shared module table.
+客户端半边是单个纯 JavaScript bundle（`client.js`），按网关的动态模块格式编写：
+无构建步骤、无 JSX、React 来自共享模块表。
 
 ```js
 window.__ModuleLoader__.load({ id: 'dsh-model-picker', factory(require) { /* … */ } })
 ```
 
-After editing `client.js`, toggle the plugin off and on in **Plugins** so the
-browser loads the new bundle generation.
+修改 `client.js` 后，在**插件**页把它关掉再打开，浏览器才会加载新的 bundle 代。
 
-## Known limitations
+## 已知限制
 
-- Visual verification is up to the user; this repository ships no automated
-  browser test.
-- The panel is a modal dialog; it traps `Tab` and closes on `Esc`.
-- Search is substring/subsequence matching, not fuzzy typo correction.
+- 视觉验证需要用户自行确认；本仓库不附带自动化浏览器测试。
+- 面板是模态对话框：会锁住 `Tab`，`Esc` 关闭。
+- 搜索是子串/子序列匹配，不做模糊拼写纠正。
 
-## License
+## 许可证
 
 [MIT](LICENSE)
