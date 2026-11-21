@@ -30,7 +30,7 @@
  * the installed package cannot be patched without editing DSH itself. This
  * plugin therefore enhances the rendered menu from the outside:
  *
- *   - injects one scoped stylesheet (only under `[data-dsh-model-picker]`);
+ *   - injects one scoped stylesheet (only under `[data-dsh-provider-fold]`);
  *   - listens for clicks on headings inside the model menu's group container;
  *   - toggles a data attribute plus `hidden` on the provider's rows.
  *
@@ -46,10 +46,10 @@
  * `observeStickyMenuGroups` itself relies on, so they are as stable as that.
  */
 window.__ModuleLoader__.load({
-  id: 'dsh-model-picker',
+  id: 'dsh-provider-fold',
   factory() {
     /** Attributes owned by this plugin; all scoped under the model menu. */
-    const MARK = 'data-dsh-model-picker';
+    const MARK = 'data-dsh-provider-fold';
     const COLLAPSED = 'data-dmp-collapsed';
     /** The group that holds the session's current model; never auto-folded. */
     const CURRENT = 'data-dmp-current';

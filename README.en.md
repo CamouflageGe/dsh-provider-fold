@@ -1,4 +1,4 @@
-# dsh-model-picker
+# dsh-provider-fold
 
 English | [中文](README.md)
 
@@ -18,7 +18,7 @@ Makes the provider groups in DeepSeek Harness's **built-in model menu** collapsi
 4. Paste this line:
 
    ```
-   github:CamouflageGe/dsh-model-picker
+   github:CamouflageGe/dsh-provider-fold
    ```
 
 5. Confirm the installation, then **reload the page**.
@@ -29,7 +29,7 @@ Makes the provider groups in DeepSeek Harness's **built-in model menu** collapsi
 ### Option 2: command line
 
 ```sh
-dsh plugin install github:CamouflageGe/dsh-model-picker
+dsh plugin install github:CamouflageGe/dsh-provider-fold
 ```
 
 Restart or reload the UI afterwards.
@@ -41,10 +41,10 @@ model is expanded; the others are folded and show their model counts.
 
 ### Uninstall
 
-In **Plugins**, find `dsh-model-picker` and click **Remove**, or:
+In **Plugins**, find `dsh-provider-fold` and click **Remove**, or:
 
 ```sh
-dsh plugin remove dsh-model-picker
+dsh plugin remove dsh-provider-fold
 ```
 
 The menu returns to its original behaviour immediately; this plugin stores nothing.
@@ -122,14 +122,14 @@ The client half is one plain-JavaScript bundle (`client.js`) written against the
 module format: no build step and no React dependency, since it only enhances the DOM.
 
 ```js
-window.__ModuleLoader__.load({ id: 'dsh-model-picker', factory() { /* … */ } })
+window.__ModuleLoader__.load({ id: 'dsh-provider-fold', factory() { /* … */ } })
 ```
 
 After editing, toggle the plugin off and on in **Plugins** so the browser loads the new bundle
 generation.
 
 ```sh
-git clone https://github.com/CamouflageGe/dsh-model-picker.git
+git clone https://github.com/CamouflageGe/dsh-provider-fold.git
 ```
 
 ## License

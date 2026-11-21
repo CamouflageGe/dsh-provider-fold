@@ -1,7 +1,7 @@
 {
-  "name": "dsh-model-picker",
+  "name": "dsh-provider-fold",
   "version": "1.0.0",
-  "description": "Collapsible provider groups for the DeepSeek Harness model menu: only your current provider expands, the rest fold away. Install with: github:CamouflageGe/dsh-model-picker",
+  "description": "Fold the provider groups in the DeepSeek Harness model menu: only your current provider expands, the rest collapse. Install with: dsh plugin add github:CamouflageGe/dsh-provider-fold",
   "type": "module",
   "exports": {
     ".": "./index.js",
@@ -45,10 +45,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CamouflageGe/dsh-model-picker.git"
+    "url": "git+https://github.com/CamouflageGe/dsh-provider-fold.git"
   },
   "bugs": {
-    "url": "https://github.com/CamouflageGe/dsh-model-picker/issues"
+    "url": "https://github.com/CamouflageGe/dsh-provider-fold/issues"
   },
-  "homepage": "https://github.com/CamouflageGe/dsh-model-picker#readme"
+  "homepage": "https://github.com/CamouflageGe/dsh-provider-fold#readme"
 }

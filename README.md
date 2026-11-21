@@ -1,4 +1,4 @@
-# dsh-model-picker
+# dsh-provider-fold
 
 中文 | [English](README.en.md)
 
@@ -18,7 +18,7 @@
 4. 在输入框里粘贴这一行：
 
    ```
-   github:CamouflageGe/dsh-model-picker
+   github:CamouflageGe/dsh-provider-fold
    ```
 
 5. 确认安装，然后 **刷新页面**。
@@ -28,7 +28,7 @@
 ### 方式二：命令行
 
 ```sh
-dsh plugin install github:CamouflageGe/dsh-model-picker
+dsh plugin install github:CamouflageGe/dsh-provider-fold
 ```
 
 安装后重启或刷新界面。
@@ -43,10 +43,10 @@ dsh plugin install github:CamouflageGe/dsh-model-picker
 
 ### 卸载
 
-在 **插件** 页面找到 `dsh-model-picker`，点 **移除**。或用命令行：
+在 **插件** 页面找到 `dsh-provider-fold`，点 **移除**。或用命令行：
 
 ```sh
-dsh plugin remove dsh-model-picker
+dsh plugin remove dsh-provider-fold
 ```
 
 卸载后菜单立即恢复原样，本插件没有写入任何持久数据。
@@ -111,13 +111,13 @@ DSH 自身（每次 DSH 升级都会丢）。所以本插件从外部增强已�
 客户端半边是单个纯 JavaScript bundle（`client.js`），按网关的动态模块格式编写，无构建步骤、无 React 依赖（只做 DOM 增强）。
 
 ```js
-window.__ModuleLoader__.load({ id: 'dsh-model-picker', factory() { /* … */ } })
+window.__ModuleLoader__.load({ id: 'dsh-provider-fold', factory() { /* … */ } })
 ```
 
 修改后在**插件**页关掉再打开，浏览器才会加载新的 bundle 代。
 
 ```sh
-git clone https://github.com/CamouflageGe/dsh-model-picker.git
+git clone https://github.com/CamouflageGe/dsh-provider-fold.git
 ```
 
 ## 许可证
