@@ -1,187 +1,269 @@
 /**
- * Model picker — collapsible provider groups for the BUILT-IN model menu.
+ * Provider fold — collapsible provider groups for the BUILT-IN model menu.
  *
- * WHAT THIS PLUGIN IS NOT
- * -----------------------
- * An earlier revision shipped a second, standalone picker panel. That was a
- * mistake: the built-in menu already groups models by provider AND already has
- * a search field (`showSearch`, `rankByName` in ui-model-selection). The only
- * thing it lacks is that a provider heading cannot be clicked to fold its rows
- * away — with a dozen providers and a hundred models every row is laid out flat.
+ * WHAT THIS IS
+ * ------------
+ * The shipped model menu already groups models by provider and already has a
+ * search field. It lacks one thing: a provider heading cannot be clicked to fold
+ * its rows, so a profile with a dozen providers shows a hundred rows at once.
  *
- * So this plugin adds exactly that one missing behaviour, in place, to the
- * shipped menu. Nothing is replaced and no parallel UI exists:
+ * This plugin adds exactly that, in place. It builds no second picker and
+ * registers no slot, so every other plugin's contribution keeps working.
  *
- *   - every provider heading in the built-in model menu becomes a disclosure
- *     button (role="button", aria-expanded) that folds its rows;
- *   - DEFAULT: only the provider holding the session's current model is open,
- *     every other provider starts folded — that is the reason a profile with a
- *     dozen providers no longer shows a hundred rows at once;
- *   - groups the user opens or closes by hand keep that state for the page's
- *     lifetime, layered over the default;
- *   - while a search query is active every group stays open, so matches are
- *     never hidden behind a fold.
+ * DEFAULT: only the provider holding the session's current model is open.
  *
- * HOW (and why it is done this way)
- * ---------------------------------
- * The shipped menu lives in `@deepseek-ai/dsh-client-ui-model-selection`, which
- * is prebuilt inside `app.asar`. Its `MenuGroup` is an ordinary component, not a
- * slot, so there is no registration point that could add a disclosure there and
- * the installed package cannot be patched without editing DSH itself. This
- * plugin therefore enhances the rendered menu from the outside:
+ * FAIL-SAFE RULES (learned the hard way)
+ * --------------------------------------
+ *   - Folded rows are hidden with `display: none`, never removed: the shipped
+ *     menu queries rows with querySelectorAll and focuses them, so the rows must
+ *     stay in the DOM exactly as React owns them.
+ *   - The plugin ALWAYS leaves at least one group open.
+ *   - A click is never swallowed: no preventDefault on rows or headings, and
+ *     the handler only acts when the target really is a provider heading.
+ *   - When the current model cannot be located, NOTHING is folded: a menu of
+ *     bare headings with no open group would be unusable.
+ *   - Search always wins: while a query is present every group is open, so a
+ *     match can never hide inside a folded provider.
  *
- *   - injects one scoped stylesheet (only under `[data-dsh-provider-fold]`);
- *   - listens for clicks on headings inside the model menu's group container;
- *   - toggles a data attribute plus `hidden` on the provider's rows.
+ * WHY IT LOOKED BROKEN: THE KEYBOARD DEADLOCK
+ * -------------------------------------------
+ * The shipped ArrowUp/ArrowDown handler calls `moveFocus`, which queries every
+ * row button and calls `.focus()` on the next one. It never checks visibility.
+ * Once groups are folded that walk keeps landing on rows whose ancestors are
+ * `display: none`; `focus()` there is a silent no-op, so the arrows appear
+ * frozen inside the one open provider and the others cannot be reached at all.
+ * The plugin therefore takes over exactly those two keys and steps through
+ * VISIBLE rows, opening the provider owning the target row as it goes. Every
+ * other key stays with the shipped menu.
  *
- * The menu is React-rendered, so rows it re-creates on a later render would lose
- * a `hidden` attribute applied by hand. A MutationObserver re-applies the folded
- * state whenever the menu's DOM changes, which keeps the visual state correct
- * without patching React.
- *
- * RISK: this is DOM-level enhancement. A future DSH release that renames the
- * group markup (`[data-menu-group]`, `[data-menu-group-heading]`) makes the
- * enhancement silently do nothing — it never breaks the menu, it just stops
- * helping. The selectors are the documented sticky-heading contract that
- * `observeStickyMenuGroups` itself relies on, so they are as stable as that.
+ * WHY DOM-LEVEL
+ * -------------
+ * The menu lives prebuilt in app.asar; its MenuGroup is an ordinary component,
+ * not a slot, so there is no registration point for a disclosure control. The
+ * selectors used here ([data-menu-group], [data-menu-group-heading]) are the
+ * sticky-heading contract DSH's own observeStickyMenuGroups relies on.
  */
 window.__ModuleLoader__.load({
   id: 'dsh-provider-fold',
   factory() {
-    /** Attributes owned by this plugin; all scoped under the model menu. */
     const MARK = 'data-dsh-provider-fold';
     const COLLAPSED = 'data-dmp-collapsed';
-    /** The group that holds the session's current model; never auto-folded. */
     const CURRENT = 'data-dmp-current';
 
-    /**
-     * Groups the user explicitly opened, by position key. Default policy is
-     * "only the current provider is open", so this set records exceptions made
-     * by clicking a heading.
-     */
+    const GROUP = '[data-menu-group]';
+    const HEADING = ':scope > [data-menu-group-heading]';
+    const ROW = 'button[role="menuitemradio"]:not([disabled])';
+
+    /** Providers the user opened by hand, keyed by provider heading text. */
     const opened = new Set();
-    /** Groups the user explicitly closed, so a manual fold survives re-renders. */
+    /** Providers the user closed by hand, keyed by provider heading text. */
     const closed = new Set();
 
-    /** Stylesheet: heading affordance + the folded state. Scoped to the model menu. */
-    const CSS = `
-/* A provider heading becomes a disclosure control. The shipped heading is a
-   plain <div> inside the group section; padding keeps the hit area generous
-   without moving the rows. */
-[${MARK}] [data-menu-group-heading] {
-  position: relative;
-  cursor: pointer;
-  user-select: none;
-  padding-right: 20px;
-  outline: none;
-}
-[${MARK}] [data-menu-group-heading]:hover {
-  color: var(--dsw-alias-label-primary);
-}
-[${MARK}] [data-menu-group-heading]:focus-visible {
-  box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary);
-  border-radius: var(--dsw-radius-sm, 6px);
-}
-/* The chevron: drawn with borders so it needs no extra DOM node. */
-[${MARK}] [data-menu-group-heading]::after {
-  content: '';
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  width: 6px;
-  height: 6px;
-  border-right: 1.5px solid var(--dsw-alias-label-caption);
-  border-bottom: 1.5px solid var(--dsw-alias-label-caption);
-  transform: translateY(-70%) rotate(45deg);
-  transition: transform 120ms ease;
-}
-[${MARK}] [${COLLAPSED}] [data-menu-group-heading]::after {
-  transform: translateY(-30%) rotate(-135deg);
-}
-/* Folded rows are hidden without removing them, so React keeps its own DOM. */
-[${MARK}] [${COLLAPSED}] > *:not([data-menu-group-heading]):not([data-menu-group-start]) {
-  display: none !important;
-}
-/* A folded group is dimmed slightly so the open one reads as the active one. */
-[${MARK}] [${COLLAPSED}] > [data-menu-group-heading] {
-  color: var(--dsw-alias-label-tertiary);
-}
-/* The current model's provider keeps full contrast even while others fold. */
-[${MARK}] [${CURRENT}] > [data-menu-group-heading] {
-  color: var(--dsw-alias-label-primary);
-  font-weight: 500;
-}
-`;
+    const CSS = [
+      '[' + MARK + '] [data-menu-group-heading] {',
+      '  position: relative;',
+      '  cursor: pointer;',
+      '  user-select: none;',
+      '  padding-right: 20px;',
+      '  outline: none;',
+      '}',
+      '[' + MARK + '] [data-menu-group-heading]:hover {',
+      '  color: var(--dsw-alias-label-primary);',
+      '}',
+      '[' + MARK + '] [data-menu-group-heading]:focus-visible {',
+      '  box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary);',
+      '  border-radius: var(--dsw-radius-sm, 6px);',
+      '}',
+      '[' + MARK + '] [data-menu-group-heading]::after {',
+      "  content: '';",
+      '  position: absolute;',
+      '  right: 6px;',
+      '  top: 50%;',
+      '  width: 6px;',
+      '  height: 6px;',
+      '  border-right: 1.5px solid var(--dsw-alias-label-caption);',
+      '  border-bottom: 1.5px solid var(--dsw-alias-label-caption);',
+      '  transform: translateY(-70%) rotate(45deg);',
+      '  transition: transform 120ms ease;',
+      '}',
+      '[' + MARK + '] [' + COLLAPSED + '] [data-menu-group-heading]::after {',
+      '  transform: translateY(-30%) rotate(-135deg);',
+      '}',
+      '[' + MARK + '] [' + COLLAPSED + '] > *:not([data-menu-group-heading]):not([data-menu-group-start]) {',
+      '  display: none !important;',
+      '}',
+      '[' + MARK + '] [' + COLLAPSED + '] > [data-menu-group-heading] {',
+      '  color: var(--dsw-alias-label-tertiary);',
+      '}',
+      '[' + MARK + '] [' + CURRENT + '] > [data-menu-group-heading] {',
+      '  color: var(--dsw-alias-label-primary);',
+      '  font-weight: 500;',
+      '}',
+    ].join('\n');
 
-    /** Attach: the grouping container inside the built-in model menu. */
-    const MENU_GROUP_SELECTOR = '[data-menu-group]';
-    const HEADING_SELECTOR = ':scope > [data-menu-group-heading]';
-
-    /** The scroll container the shipped menu marks with these groups. */
-    function groupContainerOf(heading) {
-      const section = heading === null ? null : heading.closest(MENU_GROUP_SELECTOR);
-      return section === null ? null : section.parentElement;
+    /** Stable identity of a provider group: its heading text. */
+    function keyOf(section) {
+      const heading = section.querySelector(HEADING);
+      return heading === null ? '' : (heading.textContent || '').trim();
     }
 
     /**
-     * The group that holds the session's currently selected model.
-     *
-     * The shipped menu marks the chosen row with `aria-checked="true"`
-     * (`role="menuitemradio"`), which is the one stable signal for "where the
-     * user is now" — it does not depend on provider order or display names.
-     *
-     * @param container - the model menu's group container.
-     * @returns the section holding the current model, or null when nothing is selected.
+     * Whether a search query is active. The search box is a sibling of the
+     * groups container inside the menu surface.
+     * @param {HTMLElement} container - group container.
      */
+    function isSearching(container) {
+      const surface = container.parentElement;
+      if (surface === null) return false;
+      const input = surface.querySelector('input[role="searchbox"]');
+      return input !== null && typeof input.value === 'string' && input.value.trim() !== '';
+    }
+
+    /** Whether a row can actually take focus: no folded ancestor. */
+    function visible(row) {
+      return row.getClientRects().length > 0;
+    }
+
+    /** The section holding the currently selected model, or null. */
     function currentSectionOf(container) {
       const checked = container.querySelector('[role="menuitemradio"][aria-checked="true"]');
-      return checked === null ? null : checked.closest(MENU_GROUP_SELECTOR);
+      return checked === null ? null : checked.closest(GROUP);
+    }
+
+    /** Remove every fold marker: the always-usable fallback state. */
+    function unfoldAll(container) {
+      for (const section of container.querySelectorAll(GROUP)) {
+        section.removeAttribute(COLLAPSED);
+        section.removeAttribute(CURRENT);
+      }
     }
 
     /**
-     * Re-apply the disclosure state to every group in the container.
+     * Apply the fold state. Never throws: on any problem the menu is left fully
+     * unfolded, which is always usable.
      *
-     * Default policy: ONLY the provider holding the current model is open; every
-     * other provider is folded. Two exceptions layer on top, both user-driven:
-     * a group the user clicked open stays open, and a group the user clicked
-     * closed stays closed — including the current one. An active search query
-     * overrides all of it, because hiding a match would be wrong.
+     * The "keep one provider open" safety net only applies while the state is
+     * still purely automatic. Once the user has folded or unfolded anything by
+     * hand, their choices win outright — otherwise closing the current provider
+     * would silently re-open it and the heading would look dead.
      *
-     * Called after any DOM mutation, because React re-creates rows when the
-     * catalog refreshes and a freshly created section carries no attribute.
-     *
-     * @param container - the model menu's group container.
-     * @param searching - whether a search query is active; search wins over folds.
+     * @param {HTMLElement} container - the menu's group container.
      */
-    function sync(container, searching) {
-      const sections = [...container.querySelectorAll(MENU_GROUP_SELECTOR)];
-      const current = currentSectionOf(container);
-      sections.forEach((section) => {
-        const heading = section.querySelector(HEADING_SELECTOR);
-        if (heading === null) return;
-        const key = 'group-' + sections.indexOf(section);
-        const isCurrent = section === current;
-        // Current provider opens by default; the rest start folded.
-        let open = isCurrent ? !closed.has(key) : opened.has(key);
-        if (searching) open = true;
-        section.toggleAttribute(CURRENT, isCurrent);
-        section.toggleAttribute(COLLAPSED, !open);
-        // Expose the disclosure semantics the shipped markup does not carry.
-        heading.setAttribute('role', 'button');
-        heading.setAttribute('tabindex', '0');
-        heading.setAttribute('aria-expanded', open ? 'true' : 'false');
-      });
+    function sync(container) {
+      try {
+        const sections = Array.from(container.querySelectorAll(GROUP));
+        if (sections.length === 0) return;
+        const current = currentSectionOf(container);
+        const searching = isSearching(container);
+
+        // Folding is anchored on the current model. Without one, everything
+        // stays open unless the user closed a provider by hand.
+        const anchored = current !== null;
+
+        const plans = sections.map(function (section) {
+          const key = keyOf(section);
+          const isCurrent = section === current;
+          let open;
+          if (searching) open = true;
+          else if (isCurrent) open = !closed.has(key);
+          else if (opened.has(key)) open = true;
+          else if (closed.has(key)) open = false;
+          else open = !anchored;
+          return { section: section, key: key, isCurrent: isCurrent, open: open };
+        });
+
+        // Keep at least one group open so the menu always offers rows.
+        let anyOpen = false;
+        for (const plan of plans) if (plan.open) { anyOpen = true; break; }
+        if (!anyOpen) {
+          let fallback = null;
+          for (const plan of plans) if (plan.isCurrent) { fallback = plan; break; }
+          if (fallback === null) fallback = plans[0];
+          fallback.open = true;
+        }
+
+        for (const plan of plans) {
+          const heading = plan.section.querySelector(HEADING);
+          if (heading === null) continue;
+          plan.section.toggleAttribute(CURRENT, plan.isCurrent);
+          plan.section.toggleAttribute(COLLAPSED, !plan.open);
+          heading.setAttribute('role', 'button');
+          heading.setAttribute('tabindex', '0');
+          heading.setAttribute('aria-expanded', plan.open ? 'true' : 'false');
+        }
+      } catch (error) {
+        unfoldAll(container);
+      }
     }
 
-    /** Whether the menu currently shows a search query (the shipped menu does). */
-    function isSearching(container) {
-      const root = container.closest('[data-menu-group]') === null
-        ? container.parentElement
-        : container.parentElement;
-      const input = root === null ? null : root.querySelector('input[role="searchbox"]');
-      if (input === null) return false;
-      const value = input.value;
-      return typeof value === 'string' && value.trim() !== '';
+    /** Open or close one group in the DOM without recording a preference. */
+    function setOpen(section, open) {
+      if (open) section.removeAttribute(COLLAPSED);
+      else section.setAttribute(COLLAPSED, '');
+    }
+
+    /** Fold or unfold one group and remember it as a deliberate choice. */
+    function toggle(container, section) {
+      const open = section.hasAttribute(COLLAPSED);
+      const key = keyOf(section);
+      if (open) {
+        opened.add(key);
+        closed.delete(key);
+      } else {
+        closed.add(key);
+        opened.delete(key);
+      }
+      setOpen(section, open);
+      sync(container);
+    }
+
+    /** True when the event target is one of this menu's provider headings. */
+    function headingOf(container, target) {
+      if (!(target instanceof Element)) return null;
+      const heading = target.closest('[data-menu-group-heading]');
+      if (heading === null) return null;
+      const section = heading.closest(GROUP);
+      if (section === null || section.parentElement !== container) return null;
+      return heading;
+    }
+
+    /**
+     * Move focus across VISIBLE rows only, opening the provider that owns the
+     * target row so a folded group can still be entered.
+     *
+     * Entering a folded provider records it as opened: a later `sync` must not
+     * fold it back under the focused row, which would drop focus to <body> and
+     * leave the menu looking frozen.
+     *
+     * @param {HTMLElement} container - group container.
+     * @param {number} offset - +1 or -1.
+     * @returns {boolean} whether focus moved.
+     */
+    function step(container, offset) {
+      const rows = Array.from(container.querySelectorAll(ROW));
+      if (rows.length === 0) return false;
+
+      const from = rows.indexOf(document.activeElement);
+      // Start just outside the list so the first iteration lands on the entry
+      // row: the last one when stepping backwards, the first one forwards.
+      let index = from === -1 ? (offset > 0 ? -1 : 0) : from;
+
+      for (let guard = 0; guard < rows.length; guard += 1) {
+        index = (index + offset + rows.length) % rows.length;
+        const row = rows[index];
+        const section = row.closest(GROUP);
+        if (section !== null && section.hasAttribute(COLLAPSED)) {
+          const key = keyOf(section);
+          opened.add(key);
+          closed.delete(key);
+          setOpen(section, true);
+        }
+        if (!visible(row)) continue;
+        row.focus();
+        sync(container);
+        return true;
+      }
+      return false;
     }
 
     /**
@@ -193,94 +275,145 @@ window.__ModuleLoader__.load({
       style.setAttribute(MARK, '');
       style.textContent = CSS;
       document.head.appendChild(style);
-      ctx.effect(() => () => { style.remove() }, 'model-picker: stylesheet');
+      ctx.effect(function () { return function () { style.remove(); }; }, 'dsh-provider-fold: stylesheet');
 
-      /** Containers already wired, so one mutation observer serves each menu. */
-      const observed = new WeakSet();
-      let observer;
+      const wired = new Set();
+      const observers = new Map();
+      let scanTimer;
 
-      /** Wire one group container: click + keyboard toggling, and the observer. */
-      const wire = (container) => {
-        if (container === null || observed.has(container)) return;
-        observed.add(container);
+      /** Wire one menu. Idempotent. */
+      function wire(container) {
+        if (wired.has(container)) {
+          sync(container);
+          return;
+        }
+        wired.add(container);
         container.setAttribute(MARK, '');
 
-        /**
-         * Flip one group, recording the result as a user exception so the
-         * default policy does not undo it on the next sync.
-         * @param section - the group section whose heading was activated.
-         */
-        const toggle = (section) => {
-          const heading = section.querySelector(HEADING_SELECTOR);
+        // Bubble phase and no preventDefault: the shipped menu still owns every
+        // row click. Only a provider heading is ours.
+        container.addEventListener('click', function (event) {
+          const heading = headingOf(container, event.target);
           if (heading === null) return;
-          const sections = [...container.querySelectorAll(MENU_GROUP_SELECTOR)];
-          const key = 'group-' + sections.indexOf(section);
-          const isOpenNow = !section.hasAttribute(COLLAPSED);
-          if (isOpenNow) {
-            // Closing: remember the fold, and drop any remembered opening.
-            closed.add(key);
-            opened.delete(key);
-          } else {
-            // Opening: remember it, and drop any remembered fold.
-            opened.add(key);
-            closed.delete(key);
-          }
-          sync(container, isSearching(container));
-        };
+          toggle(container, heading.closest(GROUP));
+        });
 
-        container.addEventListener('click', (event) => {
-          const heading = event.target instanceof Element ? event.target.closest('[data-menu-group-heading]') : null;
-          if (heading === null || !container.contains(heading)) return;
-          const section = heading.closest(MENU_GROUP_SELECTOR);
-          if (section === null) return;
-          // The heading is not a control in the shipped markup; make the whole
-          // heading a target but never swallow clicks that land on a row.
+        // Capture phase so the deadlocked traversal below never sees these keys.
+        container.addEventListener('keydown', function (event) {
+          if (event.isComposing || event.keyCode === 229) return;
+          if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+
+          const heading = headingOf(container, event.target);
+
+          if (heading !== null) {
+            const section = heading.closest(GROUP);
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              event.stopPropagation();
+              toggle(container, section);
+              return;
+            }
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              event.preventDefault();
+              event.stopPropagation();
+              // Open provider: hand the keyboard to its first/last row.
+              if (!section.hasAttribute(COLLAPSED)) {
+                const rows = Array.from(section.querySelectorAll(ROW));
+                const target = event.key === 'ArrowDown' ? rows[0] : rows[rows.length - 1];
+                if (target !== undefined && visible(target)) { target.focus(); return; }
+              }
+              // Folded or empty provider: jump to the neighbouring heading.
+              const headings = Array.from(container.querySelectorAll(HEADING));
+              const at = headings.indexOf(heading);
+              if (at === -1) return;
+              const next = (at + (event.key === 'ArrowDown' ? 1 : -1) + headings.length) % headings.length;
+              headings[next].focus();
+            }
+            return;
+          }
+
+          if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+          if (!(event.target instanceof Element)) return;
+          if (event.target.closest(GROUP) === null) return;
           event.preventDefault();
-          toggle(section);
+          event.stopPropagation();
+          step(container, event.key === 'ArrowDown' ? 1 : -1);
         }, true);
 
-        container.addEventListener('keydown', (event) => {
-          if (event.key !== 'Enter' && event.key !== ' ') return;
-          const heading = event.target instanceof Element ? event.target.closest('[data-menu-group-heading]') : null;
-          if (heading === null) return;
-          const section = heading.closest(MENU_GROUP_SELECTOR);
-          if (section === null) return;
-          event.preventDefault();
-          toggle(section);
+        // Scoped to this menu, coalesced to one frame, and self-releasing.
+        // Only childList is observed, so the attributes this plugin writes can
+        // never retrigger the observer.
+        let queued = false;
+        const observer = new MutationObserver(function () {
+          if (queued) return;
+          queued = true;
+          requestAnimationFrame(function () {
+            queued = false;
+            if (!container.isConnected) {
+              observer.disconnect();
+              observers.delete(container);
+              wired.delete(container);
+              return;
+            }
+            sync(container);
+          });
         });
+        observer.observe(container, { childList: true, subtree: true });
+        observers.set(container, observer);
+        sync(container);
+      }
 
-        observer = new MutationObserver(() => {
-          // Re-assert after React writes; cheap because the menu is small.
-          sync(container, isSearching(container));
-        });
-        observer.observe(container, { childList: true, subtree: true, characterData: true });
-        sync(container, isSearching(container));
-      };
-
-      /**
-       * The menu mounts and unmounts as the composer opens it, so wait for a
-       * group container to appear rather than assuming it exists at apply time.
-       */
-      const scan = () => {
+      /** Find model menus in the document and wire them. */
+      function scan() {
         const headings = document.querySelectorAll('[data-menu-group-heading]');
         for (const heading of headings) {
-          const container = groupContainerOf(heading);
-          // Only the model menu: its groups are radio rows (menuitemradio).
+          const section = heading.closest(GROUP);
+          const container = section === null ? null : section.parentElement;
+          // Only the model menu: its provider groups hold radio rows. Command
+          // and popup menus share the MenuGroup markup and must be left alone.
           if (container === null) continue;
           if (container.querySelector('[role="menuitemradio"]') === null) continue;
           wire(container);
         }
-      };
+      }
 
-      scan();
-      const watcher = new MutationObserver(scan);
-      watcher.observe(document.body, { childList: true, subtree: true });
-      ctx.effect(() => () => {
-        watcher.disconnect();
-        if (observer !== undefined) observer.disconnect();
-      }, 'model-picker: watch for the model menu');
+      function scheduleScan() {
+        if (scanTimer !== undefined) return;
+        scanTimer = requestAnimationFrame(function () {
+          scanTimer = undefined;
+          scan();
+        });
+      }
+
+      // The search field is a SIBLING of the groups container, so the container
+      // observer cannot see the query change. Without this listener, clearing a
+      // search would leave every provider open until React happened to re-render.
+      function onQueryChange(event) {
+        if (!(event.target instanceof Element)) return;
+        if (event.target.getAttribute('role') !== 'searchbox') return;
+        wired.forEach(function (container) { sync(container); });
+      }
+      document.addEventListener('input', onQueryChange);
+
+      // One throttled document observer only FINDS the menu; each menu then has
+      // its own container observer. Watching every mutation of the whole app was
+      // what made the menu feel dead.
+      const finder = new MutationObserver(scheduleScan);
+      finder.observe(document.body, { childList: true, subtree: true });
+      scheduleScan();
+
+      ctx.effect(function () {
+        return function () {
+          finder.disconnect();
+          document.removeEventListener('input', onQueryChange);
+          if (scanTimer !== undefined) cancelAnimationFrame(scanTimer);
+          observers.forEach(function (observer) { observer.disconnect(); });
+          observers.clear();
+          wired.clear();
+        };
+      }, 'dsh-provider-fold: watch for the model menu');
     }
 
-    return { apply };
+    return { apply: apply };
   },
 });

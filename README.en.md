@@ -65,7 +65,7 @@ Reload the UI afterwards.
 ### After installing
 
 Open the model menu (click the model button in the composer). The provider holding your current
-model is expanded; the others are folded and show their model counts.
+model is expanded; the others are folded.
 
 ### Uninstall
 
@@ -94,12 +94,13 @@ This plugin adds exactly that, inside the existing menu:
   open/closed chevron;
 - groups you open or close by hand keep that state for the page's lifetime;
 - while a search query is active every group expands, so results are never hidden;
-- keyboard support: `Tab` to a heading, then `Enter` or `Space` to toggle.
+- keyboard support: `Tab` to a heading, then `Enter` or `Space` to toggle; `↑` `↓` step through
+  **visible** models only and open a folded provider on the way in.
 
 ## How to use it
 
 1. Click the composer's model button to open the built-in model menu.
-2. The provider holding your current model is expanded; the rest are folded with their model counts.
+2. The provider holding your current model is expanded; the rest are folded.
 3. Click any provider heading to expand it; click again to fold it.
 4. The search field keeps working (a built-in feature) and expands every match.
 
@@ -123,14 +124,28 @@ A `MutationObserver` re-applies the folded state after any DOM change, so no Rea
 "The current provider" is located through the menu's own `aria-checked="true"` row, so it does not
 depend on provider order or display names.
 
+### Why the arrows are handled too
+
+The shipped `moveFocus` collects **every** model row and calls `focus()` on the next one; it never
+checks visibility. Folded rows are still there (`display: none`) and are still picked, but `focus()`
+on them is a silent no-op — so the arrows look stuck inside the one open provider and no other
+provider can be reached. That is exactly what made folding "work" while still preventing a model
+switch.
+
+The plugin therefore takes over `↑` `↓` only, stepping between **visible** rows and opening a folded
+provider on the way in. Every other key (search typing, `Enter` to choose, `Esc` to close) keeps the
+shipped behaviour, and no mouse event is ever `preventDefault()`-ed.
+
 ## Known limitations and risk
 
 - **This is a DOM-level enhancement.** If a future DSH release renames the group markup
   (`[data-menu-group]`, `[data-menu-group-heading]`) the plugin stops working silently — it never
   breaks the menu, it simply stops folding. Those selectors are the sticky-heading contract
   `observeStickyMenuGroups` itself depends on, so they are as stable as that contract.
-- Folding is remembered by a group's position in the menu; if the provider order changes, a
-  remembered slot may land on a different group.
+- Folding is remembered by the provider's heading text, so reordering the menu cannot shift a
+  remembered fold onto another group; renaming a provider does start a fresh group.
+- Folded rows stay in the DOM (only `display: none`), because the shipped menu finds rows with
+  `querySelectorAll` and calls `focus()`; removing them would break its own keyboard navigation.
 - No configuration fields.
 
 ## What it does not touch
