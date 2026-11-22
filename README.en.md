@@ -96,6 +96,8 @@ This plugin adds exactly that, inside the existing menu:
 - while a search query is active every group expands, so results are never hidden;
 - keyboard support: `Tab` to a heading, then `Enter` or `Space` to toggle; `↑` `↓` step through
   **visible** models only and open a folded provider on the way in.
+- at least one provider always stays open, so the menu always offers a model: closing the last open
+  provider hands the open slot to a neighbour instead of springing the clicked one back open.
 
 ## How to use it
 
@@ -135,6 +137,15 @@ switch.
 The plugin therefore takes over `↑` `↓` only, stepping between **visible** rows and opening a folded
 provider on the way in. Every other key (search typing, `Enter` to choose, `Esc` to close) keeps the
 shipped behaviour, and no mouse event is ever `preventDefault()`-ed.
+
+### Why one provider always stays open
+
+The shipped `moveFocus` only walks rows, so a menu with nothing visible would kill the arrow keys
+outright. The plugin therefore never lets every provider fold at once: closing the last open provider
+opens a neighbour instead.
+
+Opening the heading that was *just clicked* is not an option — a control that re-opens itself the
+instant you press it reads as broken. So the fallback always prefers a different provider.
 
 ## Known limitations and risk
 

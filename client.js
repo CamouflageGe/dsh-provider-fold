@@ -172,14 +172,28 @@ window.__ModuleLoader__.load({
           return { section: section, key: key, isCurrent: isCurrent, open: open };
         });
 
-        // Keep at least one group open so the menu always offers rows.
+        // Keep at least one group open so the menu always offers rows, because
+        // the shipped ArrowDown traversal only walks rows and cannot recover
+        // from a menu with nothing visible.
+        //
+        // A provider the user closed by hand is the last resort, never the
+        // first choice: re-opening the very heading that was just clicked makes
+        // it look dead. Opening a neighbour is a visible answer to the click.
+        //
+        // The fallback also corrects the remembered state, otherwise the next
+        // pass would fold it again and the menu would flicker.
         let anyOpen = false;
         for (const plan of plans) if (plan.open) { anyOpen = true; break; }
         if (!anyOpen) {
           let fallback = null;
-          for (const plan of plans) if (plan.isCurrent) { fallback = plan; break; }
+          for (const plan of plans) if (!closed.has(plan.key)) { fallback = plan; break; }
+          if (fallback === null) {
+            for (const plan of plans) if (plan.isCurrent) { fallback = plan; break; }
+          }
           if (fallback === null) fallback = plans[0];
           fallback.open = true;
+          closed.delete(fallback.key);
+          opened.add(fallback.key);
         }
 
         for (const plan of plans) {
@@ -202,7 +216,16 @@ window.__ModuleLoader__.load({
       else section.setAttribute(COLLAPSED, '');
     }
 
-    /** Fold or unfold one group and remember it as a deliberate choice. */
+    /**
+     * Fold or unfold one group and remember it as a deliberate choice.
+     *
+     * When this closes the last open provider, `sync` opens a neighbour so the
+     * menu still offers rows — but never the heading that was just clicked,
+     * which would look like a dead control.
+     *
+     * @param {HTMLElement} container - group container.
+     * @param {HTMLElement} section - the provider group.
+     */
     function toggle(container, section) {
       const open = section.hasAttribute(COLLAPSED);
       const key = keyOf(section);
