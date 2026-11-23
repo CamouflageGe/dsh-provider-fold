@@ -1,6 +1,6 @@
 {
   "name": "dsh-provider-fold",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Fold the provider groups in the DSH model menu — no second picker, no slot registration, no replaced component. Only your current provider expands, the rest collapse. Install: dsh plugin add dsh-provider-fold",
   "type": "module",
   "exports": {

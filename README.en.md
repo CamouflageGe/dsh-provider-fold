@@ -64,8 +64,8 @@ Reload the UI afterwards.
 
 ### After installing
 
-Open the model menu (click the model button in the composer). The provider holding your current
-model is expanded; the others are folded.
+Click the model button in the composer, then **Model**. The provider holding your current model is
+expanded; the others are folded. Look for **Provider group fold** in Plugins.
 
 ### Uninstall
 
@@ -92,12 +92,12 @@ This plugin adds exactly that, inside the existing menu:
   menu opens on the model you are using instead of a hundred rows;
 - every provider heading becomes a disclosure control (`role="button"` and `aria-expanded`) with an
   open/closed chevron;
-- groups you open or close by hand keep that state for the page's lifetime;
-- while a search query is active every group expands, so results are never hidden;
-- keyboard support: `Tab` to a heading, then `Enter` or `Space` to toggle; `↑` `↓` step through
-  **visible** models only and open a folded provider on the way in.
-- at least one provider always stays open, so the menu always offers a model: closing the last open
-  provider hands the open slot to a neighbour instead of springing the clicked one back open.
+- what you open or close by hand lasts for that one opening of the menu; reopening starts from the
+  current provider again, and a catalog with no current model starts fully open;
+- a search query expands the matching groups, and clearing it restores the folds you had;
+- keyboard support: with an empty query, `↑` `↓` step through provider headings, the visible models
+  and the search box; `Enter` or `Space` toggles a focused heading. Everything still folds, because
+  every heading stays reachable.
 
 ## How to use it
 
@@ -134,18 +134,11 @@ on them is a silent no-op — so the arrows look stuck inside the one open provi
 provider can be reached. That is exactly what made folding "work" while still preventing a model
 switch.
 
-The plugin therefore takes over `↑` `↓` only, stepping between **visible** rows and opening a folded
-provider on the way in. Every other key (search typing, `Enter` to choose, `Esc` to close) keeps the
-shipped behaviour, and no mouse event is ever `preventDefault()`-ed.
-
-### Why one provider always stays open
-
-The shipped `moveFocus` only walks rows, so a menu with nothing visible would kill the arrow keys
-outright. The plugin therefore never lets every provider fold at once: closing the last open provider
-opens a neighbour instead.
-
-Opening the heading that was *just clicked* is not an option — a control that re-opens itself the
-instant you press it reads as broken. So the fallback always prefers a different provider.
+So the plugin adjusts `↑` `↓` only while the search field is empty, stepping between provider
+headings and visible models. With a real query the shipped ranking, `aria-activedescendant`
+highlighting and `Enter`-to-choose are left untouched. One more guard: if clearing a query leaves the
+shipped highlight on a row that is now folded, `Enter` or `Tab` moves focus to that provider's heading
+instead of silently choosing a model nobody can see.
 
 ## Known limitations and risk
 
@@ -153,8 +146,8 @@ instant you press it reads as broken. So the fallback always prefers a different
   (`[data-menu-group]`, `[data-menu-group-heading]`) the plugin stops working silently — it never
   breaks the menu, it simply stops folding. Those selectors are the sticky-heading contract
   `observeStickyMenuGroups` itself depends on, so they are as stable as that contract.
-- Folding is remembered by the provider's heading text, so reordering the menu cannot shift a
-  remembered fold onto another group; renaming a provider does start a fresh group.
+- Folds are tracked by the provider id the menu itself puts on each row, so reordering providers or
+  renaming one cannot shift a fold onto the wrong group.
 - Folded rows stay in the DOM (only `display: none`), because the shipped menu finds rows with
   `querySelectorAll` and calls `focus()`; removing them would break its own keyboard navigation.
 - No configuration fields.
